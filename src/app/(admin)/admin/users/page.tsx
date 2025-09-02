@@ -1,10 +1,9 @@
 
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
-import { fetchPlatformWideStats } from "../../actions";
 
 export default async function AdminUsersPage() {
-    const platformStats = await fetchPlatformWideStats();
+    // The AdminDashboard component will fetch the users itself when on the /admin/users page.
     return (
-        <AdminDashboard platformStats={platformStats}/>
+        <AdminDashboard />
     )
 }

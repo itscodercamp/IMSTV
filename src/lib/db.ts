@@ -170,14 +170,14 @@ async function initializeDatabase(dbInstance: Database) {
     );
   `);
 
-    const adminCount = await dbInstance.get('SELECT COUNT(*) as count FROM dealers where email = ?', 'admin@trustedvehicles.com');
-    if (adminCount?.count === 0) {
-      await dbInstance.run(
-          "INSERT INTO dealers (id, name, dealershipName, email, phone, password, city, state, vehicleCategory, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-          'admin-user', 'Admin', 'Trusted Vehicles HQ', 'admin@trustedvehicles.com', '0000000000', 'password', 'Corporate', 'System', 'Four Wheeler', 'approved'
-      );
-      console.log("Admin user created.");
-    }
+  const adminCount = await dbInstance.get('SELECT COUNT(*) as count FROM dealers where email = ?', 'admin@trustedvehicles.com');
+  if (adminCount?.count === 0) {
+    await dbInstance.run(
+        "INSERT INTO dealers (id, name, dealershipName, email, phone, password, city, state, vehicleCategory, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        'admin-user', 'Admin', 'Trusted Vehicles HQ', 'admin@trustedvehicles.com', '0000000000', 'password', 'Corporate', 'System', 'Four Wheeler', 'approved'
+    );
+    console.log("Admin user created.");
+  }
 
   initialized = true;
 }
@@ -189,9 +189,8 @@ export async function getDB() {
             driver: sqlite3.Database
         });
         console.log('✅ Successfully connected to SQLite database!');
-        // Run initialization only once when the database connection is first established.
-        await initializeDatabase(db);
     }
+    await initializeDatabase(db);
     return db;
 }
 
@@ -202,18 +201,21 @@ export async function setupDatabase() {
         db = null;
     }
     const fs = require('fs').promises;
-    await fs.unlink('src/lib/database.db').catch((err: any) => {
+    try {
+        await fs.unlink('src/lib/database.db');
+        console.log('Database file removed.');
+    } catch (err: any) {
         if (err.code !== 'ENOENT') {
             console.error('Error removing database file:', err);
+            throw err;
         }
-    });
+        console.log('Database file not found, skipping removal.');
+    }
 
-    console.log('Database flushed. All tables dropped.');
-    
-    // Re-seed database
+    console.log('Database flushed.');
     initialized = false;
     await getDB();
-    console.log('Database re-initialized successfully.');
+    console.log('Database re-initialized and seeded successfully.');
 }
 
 

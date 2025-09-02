@@ -222,21 +222,30 @@ const UsersContent = ({ users, isLoading, onUpdateStatus, onDeleteUser }: { user
 }
 
 
-export function AdminDashboard({ platformStats }: { platformStats?: any }) {
-    const [userList, setUserList] = React.useState<Dealer[]>([]);
-    const [isLoading, setIsLoading] = React.useState(true);
+export function AdminDashboard({ initialDealers, platformStats }: { initialDealers?: Dealer[], platformStats?: any }) {
+    const [userList, setUserList] = React.useState<Dealer[]>(initialDealers || []);
+    const [isLoading, setIsLoading] = React.useState(!initialDealers);
     const pathname = usePathname();
 
     const loadDealers = React.useCallback(async () => {
         setIsLoading(true);
-        const dealers = await fetchDealers();
-        setUserList(dealers.filter(d => d.id !== 'admin-user'));
-        setIsLoading(false);
+        try {
+            const dealers = await fetchDealers();
+            setUserList(dealers.filter(d => d.id !== 'admin-user'));
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Failed to load dealers' });
+            console.error("Failed to load dealers:", error);
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
 
     React.useEffect(() => {
-        loadDealers();
-    }, [loadDealers]);
+        // Only fetch if initial data wasn't provided (like on the users page)
+        if (!initialDealers) {
+            loadDealers();
+        }
+    }, [initialDealers, loadDealers]);
 
     const dealerCounts = React.useMemo(() => {
         const counts = userList.reduce((acc, user) => {
@@ -246,7 +255,7 @@ export function AdminDashboard({ platformStats }: { platformStats?: any }) {
     
         return {
             ...counts,
-            total: counts.approved + counts.pending + counts.deactivated,
+            total: userList.length,
         };
     }, [userList]);
 
