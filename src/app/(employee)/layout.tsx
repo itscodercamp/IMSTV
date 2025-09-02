@@ -148,6 +148,8 @@ export default function EmployeeLayout({
     return null; // Wait for redirect to kick in
   }
 
+  const isDashboardRoute = pathname.startsWith('/employee-dashboard');
+
   const DashboardLayout = ({ children }: { children: React.ReactNode }) => (
     <div className="flex min-h-screen w-full">
         <EmployeeSidebar />
@@ -155,9 +157,13 @@ export default function EmployeeLayout({
             <AppHeader employeeInfo={employeeInfo!}/>
             <main className="flex-1 overflow-y-auto bg-background">
                 <div className="p-4 md:p-6">
-                    <React.Suspense fallback={<div>Loading...</div>}>
+                   {isDashboardRoute ? (
+                     <React.Suspense fallback={<div>Loading...</div>}>
                         <EmployeeLayoutClient>{children}</EmployeeLayoutClient>
                     </React.Suspense>
+                   ) : (
+                    children
+                   )}
                 </div>
             </main>
         </div>
