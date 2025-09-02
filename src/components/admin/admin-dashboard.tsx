@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { User, UserCheck, UserX, Search, MoreHorizontal, CheckCircle, XCircle, Ban, Clock, Trash2, AlertTriangle, Eye, Car, Bike, Package, Users as UsersIcon, BadgeCheck, ShoppingCart } from "lucide-react";
 import type { Dealer } from "@/lib/types";
 import { Input } from "../ui/input";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "../ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Badge } from "../ui/badge";
-import { fetchDealers, updateDealerStatusAction, deleteDealerAction } from "@/app/(admin)/actions";
+import { fetchDealers, updateDealerStatusAction, deleteDealerAction, fetchPlatformWideStats } from "@/app/(admin)/actions";
 import { usePathname } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
@@ -222,9 +222,9 @@ const UsersContent = ({ users, isLoading, onUpdateStatus, onDeleteUser }: { user
 }
 
 
-export function AdminDashboard({ initialDealers, platformStats }: { initialDealers?: Dealer[], platformStats?: any }) {
-    const [userList, setUserList] = React.useState<Dealer[]>(initialDealers || []);
-    const [isLoading, setIsLoading] = React.useState(!initialDealers);
+export function AdminDashboard({ platformStats }: { platformStats?: any }) {
+    const [userList, setUserList] = React.useState<Dealer[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
     const pathname = usePathname();
 
     const loadDealers = React.useCallback(async () => {
@@ -241,12 +241,9 @@ export function AdminDashboard({ initialDealers, platformStats }: { initialDeale
     }, []);
 
     React.useEffect(() => {
-        // Only fetch if initial data wasn't provided (like on the users page)
-        if (!initialDealers) {
-            loadDealers();
-        }
-    }, [initialDealers, loadDealers]);
-
+        loadDealers();
+    }, [loadDealers]);
+    
     const dealerCounts = React.useMemo(() => {
         const counts = userList.reduce((acc, user) => {
             acc[user.status] = (acc[user.status] || 0) + 1;
