@@ -1,5 +1,6 @@
 import requests
 import json
+import os
 
 # ==============================================================================
 #  CONFIGURATION
@@ -9,9 +10,7 @@ import json
 BASE_URL = "http://localhost:9002"  # Change this if your app runs on a different port or domain
 DEALER_ID = "54c27751-a0a0-47e4-b4a2-1d2616276feb"  # This is a sample ID, replace with a real one from your DB
 
-# You can get a vehicle ID by first running the "Get All Products" test
-VEHICLE_ID_TO_TEST = "1" # Replace with a valid vehicle ID from the /products endpoint
-# ==============================================================================
+# ======================================================================
 
 def print_response(name, response):
     """Helper function to print API test results in a formatted way."""
@@ -54,21 +53,27 @@ def test_contact():
         print(f"ERROR calling /contact: {e}")
 
 def test_get_all_products():
-    """Tests the /products endpoint."""
+    """Tests the /products endpoint and returns the first product ID if available."""
     try:
         response = requests.get(f"{BASE_URL}/api/website/{DEALER_ID}/products")
         print_response("Get All Products", response)
+        if response.status_code == 200 and response.json():
+            products = response.json()
+            if isinstance(products, list) and len(products) > 0:
+                # Return the ID of the first product
+                return products[0].get('id')
     except requests.exceptions.RequestException as e:
         print(f"ERROR calling /products: {e}")
+    return None
 
-def test_get_single_product():
+def test_get_single_product(vehicle_id):
     """Tests the /product/:id endpoint."""
-    if not VEHICLE_ID_TO_TEST:
-        print("Skipping single product test: VEHICLE_ID_TO_TEST is not set.")
+    if not vehicle_id:
+        print("Skipping single product test: No products found for this dealer.")
         return
     try:
-        response = requests.get(f"{BASE_URL}/api/website/{DEALER_ID}/product/{VEHICLE_ID_TO_TEST}")
-        print_response(f"Get Single Product (ID: {VEHICLE_ID_TO_TEST})", response)
+        response = requests.get(f"{BASE_URL}/api/website/{DEALER_ID}/product/{vehicle_id}")
+        print_response(f"Get Single Product (ID: {vehicle_id})", response)
     except requests.exceptions.RequestException as e:
         print(f"ERROR calling /product/:id: {e}")
 
@@ -120,8 +125,9 @@ if __name__ == "__main__":
     test_contact()
 
     # Products / Services
-    test_get_all_products()
-    test_get_single_product()
+    # First get all products to find a valid ID for the single product test
+    first_product_id = test_get_all_products()
+    test_get_single_product(first_product_id)
 
     # Messages / Notifications
     test_get_messages()
