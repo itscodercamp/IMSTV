@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, Edit, Trash2, Eye, AlertTriangle, PlusCircle, Search, CircleOff } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, Eye, AlertTriangle, PlusCircle, Search, CircleOff, Share2 } from "lucide-react";
 import type { Vehicle } from "@/lib/types";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
@@ -56,6 +56,22 @@ export function InventoryTable({ initialVehicles, dealerId }: { initialVehicles:
   React.useEffect(() => {
     setVehicles(initialVehicles);
   }, [initialVehicles]);
+  
+  const handleShare = (vehicle: Vehicle) => {
+    let message = `*Check out this vehicle:*\n\n`;
+    message += `*Vehicle:* ${vehicle.make} ${vehicle.model} ${vehicle.variant} (${vehicle.year})\n`;
+    message += `*Price:* ₹${vehicle.price.toLocaleString('en-IN')}\n`;
+    message += `*Kms Driven:* ${vehicle.odometerReading?.toLocaleString()} km\n`;
+    
+    const dealerInfoRaw = localStorage.getItem('dealer_info');
+    if(dealerInfoRaw) {
+        const dealerInfo = JSON.parse(dealerInfoRaw);
+        message += `*From:* ${dealerInfo.dealershipName}`;
+    }
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
 
   const handleStatusChange = async (vehicleId: string, currentStatus: Vehicle['status']) => {
     let newStatus: Vehicle['status'] = currentStatus;
@@ -242,6 +258,9 @@ export function InventoryTable({ initialVehicles, dealerId }: { initialVehicles:
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
                                 <Link href={`/dashboard/${dealerId}/inventory/edit/${vehicle.id}`}><Edit className="mr-2 h-4 w-4"/> Edit Details</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleShare(vehicle)}>
+                                <Share2 className="mr-2 h-4 w-4"/> Share on WhatsApp
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               {vehicle.status !== 'Sold' && (

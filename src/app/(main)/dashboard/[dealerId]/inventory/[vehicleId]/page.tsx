@@ -106,6 +106,30 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
     setIsEmployee(employeeAuth);
   }, []);
 
+  const handleShare = () => {
+    let message = `*Check out this vehicle:*\n\n`;
+    message += `*Vehicle:* ${vehicle.make} ${vehicle.model} ${vehicle.variant} (${vehicle.year})\n`;
+    message += `*Price:* ₹${vehicle.price.toLocaleString('en-IN')}\n`;
+    message += `*Kms Driven:* ${vehicle.odometerReading?.toLocaleString()} km\n`;
+    message += `*Fuel Type:* ${vehicle.fuelType}\n`;
+    message += `*Transmission:* ${vehicle.transmission}\n`;
+    message += `*Ownership:* ${vehicle.ownershipType}\n`;
+    message += `*Registration:* ${vehicle.registrationNumber}\n\n`;
+
+    if (!isEmployee) {
+        message += `_More details available._\n`;
+    }
+
+    const dealerInfoRaw = localStorage.getItem('dealer_info');
+    if(dealerInfoRaw) {
+        const dealerInfo = JSON.parse(dealerInfoRaw);
+        message += `*From:* ${dealerInfo.dealershipName}`;
+    }
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  }
+
   const getStatusVariant = (status: typeof vehicle.status) => {
     switch (status) {
       case 'Sold':
@@ -317,17 +341,19 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
               )}
             </Accordion>
         </CardContent>
-        {!isEmployee && (
-            <CardFooter className="flex-col sm:flex-row justify-end gap-2 p-4 mt-4 border-t">
-                <Button variant="outline"><Share2 className="mr-2 h-4 w-4"/>Share</Button>
+        <CardFooter className="flex-col sm:flex-row justify-end gap-2 p-4 mt-4 border-t">
+            <Button variant="outline" onClick={handleShare}><Share2 className="mr-2 h-4 w-4"/>Share</Button>
+            {!isEmployee && (
+              <>
                 <Button variant="outline"><Wrench className="mr-2 h-4 w-4"/>Update Status</Button>
                 <Button asChild>
                     <Link href={`/dashboard/${dealerId}/inventory/edit/${vehicle.id}`}>
                         <Edit className="mr-2 h-4 w-4"/>Edit Information
                     </Link>
                 </Button>
-            </CardFooter>
-        )}
+              </>
+            )}
+        </CardFooter>
       </Card>
 
        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
