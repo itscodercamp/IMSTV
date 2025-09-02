@@ -19,8 +19,9 @@ export default function MainLayout({
 
   React.useEffect(() => {
     if (isMounted) {
-        const isAuthenticated = localStorage.getItem("user_authenticated") === "true";
-        if (!isAuthenticated) {
+        const isDealerAuthenticated = localStorage.getItem("user_authenticated") === "true";
+        const isEmployeeAuthenticated = localStorage.getItem("employee_authenticated") === "true";
+        if (!isDealerAuthenticated && !isEmployeeAuthenticated) {
             router.replace("/login");
         }
     }
@@ -30,18 +31,28 @@ export default function MainLayout({
     return null; // or a loading spinner
   }
 
-  const isAuthenticated = typeof window !== 'undefined' && localStorage.getItem("user_authenticated") === "true";
+  const isDealerAuthenticated = typeof window !== 'undefined' && localStorage.getItem("user_authenticated") === "true";
+  const isEmployeeAuthenticated = typeof window !== 'undefined' && localStorage.getItem("employee_authenticated") === "true";
   const dealerInfoRaw = typeof window !== 'undefined' ? localStorage.getItem("dealer_info") : null;
   
-  if (!isAuthenticated || !dealerInfoRaw) {
+  if (!isDealerAuthenticated && !isEmployeeAuthenticated) {
     return null; 
   }
   
-  const dealerInfo = JSON.parse(dealerInfoRaw);
-  if (!dealerInfo || !dealerInfo.id) {
-    // Potentially redirect to login if info is corrupted
+  // This check is primarily for dealer context; employees don't need it as much
+  if (isDealerAuthenticated && !dealerInfoRaw) {
     return null;
   }
+  
+  let dealerInfo;
+  if(dealerInfoRaw){
+    dealerInfo = JSON.parse(dealerInfoRaw);
+    if (!dealerInfo || !dealerInfo.id) {
+        // Potentially redirect to login if info is corrupted
+        return null;
+    }
+  }
+
 
   return (
       <div className="flex min-h-screen w-full">

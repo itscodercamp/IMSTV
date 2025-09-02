@@ -379,7 +379,7 @@ export default function VehicleDetailPage() {
         .catch(() => notFound())
         .finally(() => setLoading(false));
     }
-  }, [vehicleId, dealerId]);
+  }, [vehicleId]);
 
   if (loading) {
       return <VehicleDetailLoader />;
