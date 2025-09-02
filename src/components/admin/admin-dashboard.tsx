@@ -38,7 +38,7 @@ const statusConfig = {
 
 const DashboardContent = ({ dealerCounts, platformStats }: { 
     dealerCounts: { total: number, approved: number, pending: number, deactivated: number },
-    platformStats: { totalVehicles: number, soldVehicles: number, inStockVehicles: number, totalEmployees: number }
+    platformStats?: { totalVehicles: number, soldVehicles: number, inStockVehicles: number, totalEmployees: number }
 }) => {
     return (
         <div className="space-y-6">
@@ -51,16 +51,20 @@ const DashboardContent = ({ dealerCounts, platformStats }: {
                     <StatCard title="Deactivated" value={dealerCounts.deactivated} icon={UserX} color="text-red-500"/>
                 </div>
             </div>
-            <Separator />
-            <div>
-                 <h2 className="text-xl font-semibold tracking-tight text-foreground mb-2">Platform-Wide Stats</h2>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <StatCard title="All Registered Vehicles" value={platformStats.totalVehicles} icon={Package} color="text-blue-500"/>
-                    <StatCard title="All Sold Vehicles" value={platformStats.soldVehicles} icon={ShoppingCart} color="text-red-500"/>
-                    <StatCard title="All Available in Stock" value={platformStats.inStockVehicles} icon={BadgeCheck} color="text-green-500"/>
-                    <StatCard title="All Employees" value={platformStats.totalEmployees} icon={UsersIcon} color="text-orange-500"/>
+            {platformStats && (
+                <>
+                <Separator />
+                <div>
+                    <h2 className="text-xl font-semibold tracking-tight text-foreground mb-2">Platform-Wide Stats</h2>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <StatCard title="All Registered Vehicles" value={platformStats.totalVehicles} icon={Package} color="text-blue-500"/>
+                        <StatCard title="All Sold Vehicles" value={platformStats.soldVehicles} icon={ShoppingCart} color="text-red-500"/>
+                        <StatCard title="All Available in Stock" value={platformStats.inStockVehicles} icon={BadgeCheck} color="text-green-500"/>
+                        <StatCard title="All Employees" value={platformStats.totalEmployees} icon={UsersIcon} color="text-orange-500"/>
+                    </div>
                 </div>
-            </div>
+                </>
+            )}
 
         </div>
     )
@@ -156,6 +160,7 @@ const UsersContent = ({ users, isLoading, onUpdateStatus, onDeleteUser }: { user
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
+                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                 <DropdownMenuItem asChild>
                                                    <Link href={`/admin/users/${user.id}`}>
                                                         <Eye className="mr-2 h-4 w-4" /> View Profile
@@ -217,7 +222,7 @@ const UsersContent = ({ users, isLoading, onUpdateStatus, onDeleteUser }: { user
 }
 
 
-export function AdminDashboard({ platformStats }: { platformStats: any }) {
+export function AdminDashboard({ platformStats }: { platformStats?: any }) {
     const [userList, setUserList] = React.useState<Dealer[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const pathname = usePathname();
