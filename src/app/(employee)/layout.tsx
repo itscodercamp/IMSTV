@@ -19,7 +19,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LogOut, Settings, PanelLeft, ShieldCheck, User as UserIcon } from "lucide-react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import { ThemeToggleButton } from "@/components/theme-toggle-button";
 import type { Employee } from "@/lib/types";
@@ -105,6 +105,41 @@ function AppHeader({ employeeInfo }: { employeeInfo: Employee }) {
     );
 }
 
+function PageTitle() {
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    
+    const TABS: Record<string, { title: string }> = {
+        '/employee-dashboard': 'Dashboard',
+        '/employee-dashboard?tab=new-lead': 'Add New Lead',
+        '/employee-dashboard?tab=my-leads': 'My Leads',
+        '/employee-dashboard/all-leads': 'All Dealership Leads',
+        '/employee-dashboard?tab=profile': 'My Profile',
+        '/employee-dashboard?tab=salary-slips': 'Salary Slips',
+    }
+
+    const tab = searchParams.get('tab');
+    const key = tab ? `/employee-dashboard?tab=${tab}` : pathname;
+    
+    // For dynamic routes like /inventory/[...slug]
+    if (pathname.startsWith('/inventory')) {
+      return (
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground mb-4 md:mb-6">
+          Vehicle Details
+        </h1>
+      )
+    }
+    
+    const pageTitle = TABS[key] || 'Dashboard';
+
+    return (
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground mb-4 md:mb-6">
+            {pageTitle}
+        </h1>
+    );
+}
+
+
 export default function EmployeeLayout({
   children,
 }: {
@@ -157,13 +192,10 @@ export default function EmployeeLayout({
             <AppHeader employeeInfo={employeeInfo!}/>
             <main className="flex-1 overflow-y-auto bg-background">
                 <div className="p-4 md:p-6">
-                   {isDashboardRoute ? (
-                     <React.Suspense fallback={<div>Loading...</div>}>
-                        <EmployeeLayoutClient>{children}</EmployeeLayoutClient>
-                    </React.Suspense>
-                   ) : (
-                    children
-                   )}
+                   <React.Suspense fallback={<div>Loading...</div>}>
+                        <PageTitle />
+                   </React.Suspense>
+                   {children}
                 </div>
             </main>
         </div>

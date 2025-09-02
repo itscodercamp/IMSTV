@@ -10,7 +10,7 @@ const TABS: Record<string, { title: string }> = {
     'my-leads': { title: 'My Leads' },
     'all-leads': { title: 'All Dealership Leads' },
     'profile': { title: 'My Profile' },
-    'salary-slip': { title: 'Salary Slips' },
+    'salary-slips': { title: 'Salary Slips' },
 }
 
 export function EmployeeLayoutClient({ children }: { children: React.ReactNode }) {
