@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { PartyPopper, Calendar, ExternalLink, Brush, MessageSquare, PieChart, Users, Eye, CheckCircle, ChevronLeft, ChevronRight, Settings, Copy, ShieldCheck } from "lucide-react";
+import { PartyPopper, Calendar, ExternalLink, Brush, MessageSquare, PieChart, Users, Eye, CheckCircle, ChevronLeft, ChevronRight, Settings, Copy, ShieldCheck, Clock, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,6 +22,8 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useParams } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
+import { getWebsiteContentAction, upsertWebsiteContentAction } from "@/app/(main)/actions";
+import type { WebsiteContent } from "@/lib/types";
 
 const StatCard = ({ title, value, icon: Icon, action, children }: { title: string, value: string, icon: React.ElementType, action?: React.ReactNode, children?: React.ReactNode }) => (
     <Card className="flex flex-col">
@@ -64,16 +66,85 @@ const mockMessages = [
 
 const ITEMS_PER_PAGE = 5;
 
+const LiveStatusControl = ({ websiteContent, dealerId, reload }: { websiteContent: WebsiteContent | null, dealerId: string, reload: () => void }) => {
+    const [isLoading, setIsLoading] = React.useState(false);
+    
+    const handleRequestLive = async () => {
+        setIsLoading(true);
+        const result = await upsertWebsiteContentAction(dealerId, { websiteStatus: 'pending_approval' });
+        if (result.success) {
+            toast({ title: "Request Sent!", description: "Your request to go live has been sent to the admin for approval." });
+            reload();
+        } else {
+            toast({ title: "Request Failed", description: result.error, variant: 'destructive' });
+        }
+        setIsLoading(false);
+    }
+    
+    const handleToggleLive = async (isLive: boolean) => {
+        setIsLoading(true);
+        const result = await upsertWebsiteContentAction(dealerId, { isLive });
+        if (result.success) {
+            toast({ title: `Website is now ${isLive ? 'Live' : 'Offline'}` });
+            reload();
+        } else {
+            toast({ title: "Update Failed", description: result.error, variant: 'destructive' });
+        }
+        setIsLoading(false);
+    }
+    
+    const websiteStatus = websiteContent?.websiteStatus;
+    const isLive = websiteContent?.isLive ?? false;
+
+    if (websiteStatus === 'approved') {
+        return (
+             <div className="flex items-center space-x-2">
+                <Switch id="live-status" checked={isLive} onCheckedChange={handleToggleLive} disabled={isLoading}/>
+                <Label htmlFor="live-status" className="font-medium">Go Live</Label>
+            </div>
+        )
+    }
+
+    if (websiteStatus === 'pending_approval') {
+        return (
+            <Badge variant="secondary" className="gap-2 text-base px-4 py-2">
+                <Clock className="h-4 w-4"/>
+                <span>Pending Admin Approval</span>
+            </Badge>
+        )
+    }
+
+    if (websiteStatus === 'rejected') {
+        return (
+            <Badge variant="destructive" className="gap-2 text-base px-4 py-2">Website Rejected</Badge>
+        )
+    }
+    
+    return (
+        <Button onClick={handleRequestLive} disabled={isLoading}>
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ShieldCheck className="mr-2 h-4 w-4" />}
+            Request to Go Live
+        </Button>
+    )
+}
+
+
 export default function MyWebsiteDashboardPage() {
     const [dealerInfo, setDealerInfo] = React.useState({dealershipName: 'Your Brand'});
-    const [isLive, setIsLive] = React.useState(false);
+    const [websiteContent, setWebsiteContent] = React.useState<WebsiteContent | null>(null);
+    const [isLoading, setIsLoading] = React.useState(true);
     const [planExpiry, setPlanExpiry] = React.useState<Date | null>(null);
     const [offersPage, setOffersPage] = React.useState(1);
     const [messagesPage, setMessagesPage] = React.useState(1);
     const params = useParams();
     const dealerId = params.dealerId as string;
 
-     React.useEffect(() => {
+    const loadData = React.useCallback(async () => {
+        if (!dealerId) return;
+        setIsLoading(true);
+        const content = await getWebsiteContentAction(dealerId);
+        setWebsiteContent(content);
+
         const info = localStorage.getItem('dealer_info');
         if (info) setDealerInfo(JSON.parse(info));
 
@@ -89,8 +160,12 @@ export default function MyWebsiteDashboardPage() {
             expiryDate = add(activationDate, { months: 12 });
         }
         setPlanExpiry(expiryDate);
-
+        setIsLoading(false);
     }, [dealerId]);
+
+     React.useEffect(() => {
+       loadData();
+    }, [loadData]);
 
     const websiteUrl = `${dealerInfo.dealershipName.toLowerCase().replace(/\s+/g, '-')}.trustedvehicles.com`;
     
@@ -110,6 +185,10 @@ export default function MyWebsiteDashboardPage() {
             variant: "success",
         });
     }
+    
+    if (isLoading) {
+        return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    }
 
   return (
     <div className="space-y-6">
@@ -125,11 +204,8 @@ export default function MyWebsiteDashboardPage() {
                      <Button size="sm" variant="outline">Renew Now</Button>
                  </div>
                  <div className="flex flex-col items-center gap-3">
-                    <div className="flex items-center space-x-2">
-                        <Switch id="live-status" checked={isLive} onCheckedChange={setIsLive} />
-                        <Label htmlFor="live-status" className="font-medium">Go Live</Label>
-                    </div>
-                    {isLive && (
+                    <LiveStatusControl websiteContent={websiteContent} dealerId={dealerId} reload={loadData} />
+                    {websiteContent?.isLive && (
                          <div className="flex flex-col items-center gap-2 text-xs">
                              <Button size="sm" asChild variant="secondary" className="w-full">
                                 <a href={`https://${websiteUrl}`} target="_blank" rel="noopener noreferrer">

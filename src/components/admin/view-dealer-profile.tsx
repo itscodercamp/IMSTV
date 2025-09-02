@@ -13,24 +13,16 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Mail, Phone, MapPin, CheckCircle, Clock, Ban, Car, Bike, IndianRupee, Users, LineChart, Wrench, Contact, FileText, Eye as EyeIcon } from "lucide-react";
-import type { Dealer, Employee, Lead, Vehicle } from "@/lib/types";
+import { ArrowLeft, Mail, Phone, MapPin, CheckCircle, Clock, Ban, Car, Bike, IndianRupee, Users, LineChart, Wrench, Contact, FileText, Eye as EyeIcon, Globe, Loader2 } from "lucide-react";
+import type { Dealer, Employee, Lead, Vehicle, WebsiteContent } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "../dashboard/stat-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
+import { updateWebsiteStatusAction } from "@/app/(admin)/actions";
 
 const placeholderImage = 'https://placehold.co/600x400.png';
 
@@ -39,6 +31,14 @@ const statusConfig = {
     'pending': { variant: 'secondary', icon: Clock, label: 'Pending', color: 'text-yellow-500' },
     'deactivated': { variant: 'destructive', icon: Ban, label: 'Deactivated', color: 'text-red-500' },
 } as const;
+
+const websiteStatusConfig = {
+    'approved': { variant: 'default', icon: CheckCircle, label: 'Approved' },
+    'pending_approval': { variant: 'secondary', icon: Clock, label: 'Pending Approval' },
+    'rejected': { variant: 'destructive', icon: Ban, label: 'Rejected' },
+    'not_requested': { variant: 'outline', icon: Globe, label: 'Not Live' },
+} as const;
+
 
 const VehicleCategoryIcon = ({ category }: { category: Dealer['vehicleCategory']}) => {
     if (category === 'Four Wheeler') return <Car className="h-5 w-5 text-muted-foreground" />;
@@ -58,7 +58,7 @@ interface DashboardData {
 }
 
 interface ViewDealerProfileProps {
-    dealer: Dealer;
+    dealer: Dealer & { websiteContent: WebsiteContent | null };
     dashboardData: DashboardData;
     vehicles: Vehicle[];
     employees: Employee[];
@@ -215,7 +215,30 @@ function LeadsTab({ leads }: { leads: Lead[] }) {
 
 
 export function ViewDealerProfile({ dealer, dashboardData, vehicles, employees, leads }: ViewDealerProfileProps) {
+  const router = useRouter();
+  const [isApproving, setIsApproving] = React.useState(false);
   const { variant, icon: StatusIcon, label, color } = statusConfig[dealer.status];
+  const { variant: websiteVariant, icon: WebsiteStatusIcon, label: websiteLabel } = websiteStatusConfig[dealer.websiteContent?.websiteStatus ?? 'not_requested'];
+
+  const handleApproveWebsite = async () => {
+    setIsApproving(true);
+    const result = await updateWebsiteStatusAction(dealer.id, 'approved');
+    if (result.success) {
+        toast({
+            variant: "success",
+            title: "Website Approved!",
+            description: `${dealer.dealershipName}'s website is now approved and can go live.`
+        });
+        router.refresh();
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Approval Failed",
+            description: result.error || "Could not approve the website.",
+        });
+    }
+    setIsApproving(false);
+  };
 
   return (
       <div className="space-y-6 max-w-6xl mx-auto">
@@ -236,16 +259,20 @@ export function ViewDealerProfile({ dealer, dashboardData, vehicles, employees, 
                 </Avatar>
                 <div className="space-y-2 flex-1">
                     <CardTitle className="text-3xl font-bold">{dealer.dealershipName}</CardTitle>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground pt-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4 text-sm text-muted-foreground pt-1">
                         <div className="flex items-center gap-1.5"><Users className="h-4 w-4"/> {dealer.name}</div>
                         <div className="flex items-center gap-1.5"><Mail className="h-4 w-4"/> {dealer.email}</div>
                         <div className="flex items-center gap-1.5"><Phone className="h-4 w-4"/> {dealer.phone}</div>
                         <div className="flex items-center gap-1.5"><MapPin className="h-4 w-4"/> {dealer.city}, {dealer.state}</div>
                     </div>
-                     <div className="pt-2 flex items-center gap-4">
+                     <div className="pt-2 flex flex-wrap items-center gap-4">
                         <Badge variant={variant} className={`gap-1.5 text-sm`}>
                             <StatusIcon className={`h-4 w-4 ${color}`} />
-                            {label}
+                            Account: {label}
+                        </Badge>
+                         <Badge variant={websiteVariant} className="gap-1.5 text-sm">
+                            <WebsiteStatusIcon className="h-4 w-4"/>
+                            Website: {websiteLabel}
                         </Badge>
                         <div className="flex items-center gap-2">
                             <VehicleCategoryIcon category={dealer.vehicleCategory} />
@@ -255,6 +282,20 @@ export function ViewDealerProfile({ dealer, dashboardData, vehicles, employees, 
                 </div>
                 </div>
             </CardHeader>
+             {dealer.websiteContent?.websiteStatus === 'pending_approval' && (
+                <CardContent>
+                    <div className="p-4 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-500/50 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400"/>
+                            <p className="font-medium text-yellow-800 dark:text-yellow-300">This dealer has requested to make their website live.</p>
+                        </div>
+                        <Button onClick={handleApproveWebsite} disabled={isApproving}>
+                            {isApproving ? <Loader2 className="h-4 w-4 animate-spin"/> : <CheckCircle className="h-4 w-4" />}
+                            <span className="ml-2">Approve Website</span>
+                        </Button>
+                    </div>
+                </CardContent>
+            )}
         </Card>
         
         <Tabs defaultValue="dashboard">

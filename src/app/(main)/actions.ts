@@ -144,6 +144,7 @@ export async function upsertWebsiteContentAction(dealerId: string, content: Part
     const result = await upsertWebsiteContentDb(dealerId, content);
     if (result.success) {
         revalidatePath(`/my-website/${dealerId}/customize`);
+        revalidatePath(`/my-website/${dealerId}/dashboard`);
         revalidatePath(`/api/website/${dealerId}/[...slug]`, 'page');
     }
     return result;

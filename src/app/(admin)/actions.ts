@@ -1,7 +1,7 @@
 
 'use server';
 
-import type { Dealer, Employee, Lead, Vehicle } from "@/lib/types";
+import type { Dealer, Employee, Lead, Vehicle, WebsiteContent } from "@/lib/types";
 import { 
     fetchDealers as fetchDealersDb, 
     updateDealerStatusAction as updateDealerStatusDb, 
@@ -11,19 +11,36 @@ import {
     getAllVehicles,
     getAllEmployees,
     getAllLeads,
-    getPlatformWideStats
+    getPlatformWideStats,
+    updateWebsiteStatusAction as updateWebsiteStatusDb,
+    getWebsiteContent
 } from "@/lib/db"; 
+import { revalidatePath } from "next/cache";
 
 export async function fetchDealers(): Promise<Dealer[]> {
     return await fetchDealersDb();
 }
 
-export async function fetchDealerById(id: string): Promise<Dealer | undefined> {
-    return await getDealerByIdDb(id);
+export async function fetchDealerById(id: string): Promise<(Dealer & {websiteContent: WebsiteContent | null}) | undefined> {
+    const [dealer, websiteContent] = await Promise.all([
+        getDealerByIdDb(id),
+        getWebsiteContent(id)
+    ]);
+    if (!dealer) return undefined;
+    return { ...dealer, websiteContent };
 }
 
 export async function updateDealerStatusAction(id: string, status: Dealer['status']): Promise<{ success: boolean }> {
     return await updateDealerStatusDb(id, status);
+}
+
+export async function updateWebsiteStatusAction(dealerId: string, status: WebsiteContent['websiteStatus']): Promise<{ success: boolean; error?: string }> {
+    const result = await updateWebsiteStatusDb(dealerId, status);
+    if(result.success) {
+        revalidatePath(`/admin/users/${dealerId}`);
+        revalidatePath(`/my-website/${dealerId}/dashboard`);
+    }
+    return result;
 }
 
 export async function deleteDealerAction(id: string): Promise<{ success: boolean; error?: string }> {

@@ -51,6 +51,8 @@ async function initializeDatabase(dbInstance: Database) {
       contactEmail TEXT,
       address TEXT,
       activeTheme TEXT,
+      websiteStatus TEXT DEFAULT 'not_requested' CHECK(websiteStatus IN ('not_requested', 'pending_approval', 'approved', 'rejected')),
+      isLive BOOLEAN DEFAULT false,
       FOREIGN KEY (dealerId) REFERENCES dealers(id) ON DELETE CASCADE
     );
   `);
@@ -281,6 +283,8 @@ export async function getWebsiteContent(dealerId: string): Promise<WebsiteConten
       contactEmail: websiteContent?.contactEmail ?? dealerInfo.email,
       address: websiteContent?.address ?? `${dealerInfo.city}, ${dealerInfo.state}`,
       activeTheme: websiteContent?.activeTheme ?? 'modern',
+      websiteStatus: websiteContent?.websiteStatus ?? 'not_requested',
+      isLive: websiteContent?.isLive ?? false,
     };
 }
 
@@ -289,27 +293,27 @@ export async function upsertWebsiteContent(dealerId: string, content: Partial<We
     const db = await getDB();
     try {
         const existing = await db.get('SELECT 1 FROM website_content WHERE dealerId = ?', dealerId);
+        
+        const contentToSave = { ...content };
+        // Ensure boolean is saved as 0 or 1
+        if (typeof contentToSave.isLive === 'boolean') {
+            (contentToSave as any).isLive = contentToSave.isLive ? 1 : 0;
+        }
+
         if (existing) {
-            const fields = Object.keys(content);
+            const fields = Object.keys(contentToSave).filter(key => key !== 'dealerId');
             if (fields.length === 0) return { success: true };
             const setClause = fields.map(field => `${field} = ?`).join(', ');
-            const values = fields.map(field => (content as any)[field]);
+            const values = fields.map(field => (contentToSave as any)[field]);
             await db.run(`UPDATE website_content SET ${setClause} WHERE dealerId = ?`, [...values, dealerId]);
         } else {
-            const data: WebsiteContent = {
-                dealerId,
-                brandName: content.brandName,
-                logoUrl: content.logoUrl,
-                tagline: content.tagline,
-                aboutUs: content.aboutUs,
-                contactPhone: content.contactPhone,
-                contactEmail: content.contactEmail,
-                address: content.address,
-                activeTheme: content.activeTheme,
-            };
+            const columns = ['dealerId', ...Object.keys(contentToSave)];
+            const placeholders = columns.map(() => '?').join(',');
+            const values = [dealerId, ...Object.values(contentToSave)];
+            
             await db.run(
-                'INSERT INTO website_content (dealerId, brandName, logoUrl, tagline, aboutUs, contactPhone, contactEmail, address, activeTheme) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                data.dealerId, data.brandName, data.logoUrl, data.tagline, data.aboutUs, data.contactPhone, data.contactEmail, data.address, data.activeTheme
+                `INSERT INTO website_content (${columns.join(',')}) VALUES (${placeholders})`,
+                ...values
             );
         }
         return { success: true };
@@ -758,8 +762,14 @@ export async function testDbConnection() {
 export async function fetchDealers(): Promise<Dealer[]> {
     const db = await getDB();
     try {
-        const results = await db.all('SELECT id, name, email, dealershipName, status, city, state, vehicleCategory, password FROM dealers');
-        return results as Dealer[];
+        const results = await db.all(`
+            SELECT 
+                d.*, 
+                wc.websiteStatus 
+            FROM dealers d 
+            LEFT JOIN website_content wc ON d.id = wc.dealerId
+        `);
+        return results.map(r => ({...r, websiteStatus: r.websiteStatus || 'not_requested'})) as Dealer[];
     } catch (error) {
         console.error("Failed to fetch dealers:", error);
         return [];
@@ -777,10 +787,22 @@ export async function updateDealerStatusAction(id: string, status: Dealer['statu
     }
 }
 
+export async function updateWebsiteStatusAction(dealerId: string, status: WebsiteContent['websiteStatus']): Promise<{ success: boolean; error?: string }> {
+    const db = await getDB();
+    try {
+        await upsertWebsiteContent(dealerId, { websiteStatus: status });
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to update website status:", error);
+        return { success: false, error: (error as Error).message };
+    }
+}
+
 export async function deleteDealerAction(id: string): Promise<{ success: boolean; error?: string }> {
     const db = await getDB();
     try {
         await db.run('BEGIN TRANSACTION');
+        await db.run('DELETE FROM website_content WHERE dealerId = ?', id);
         await db.run('DELETE FROM salarySlips WHERE dealerId = ?', id);
         await db.run('DELETE FROM leads WHERE dealerId = ?', id);
         await db.run('DELETE FROM employees WHERE dealerId = ?', id);

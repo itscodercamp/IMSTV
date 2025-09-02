@@ -148,6 +148,7 @@ export interface Dealer {
     status: 'approved' | 'pending' | 'deactivated';
     phone: string;
     password?: string; // Should be handled securely on a server
+    websiteStatus?: WebsiteContent['websiteStatus'];
 }
 
 export interface SalarySlip {
@@ -173,5 +174,7 @@ export interface WebsiteContent {
     contactEmail?: string | null;
     address?: string | null;
     activeTheme?: string | null;
+    websiteStatus?: 'not_requested' | 'pending_approval' | 'approved' | 'rejected' | null;
+    isLive?: boolean | null;
 }
     
