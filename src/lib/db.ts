@@ -261,14 +261,34 @@ export async function addDealer(dealer: Omit<Dealer, 'id' | 'status'>) {
 // WEBSITE CONTENT FUNCTIONS
 export async function getWebsiteContent(dealerId: string): Promise<WebsiteContent | null> {
     const db = await getDB();
-    const content = await db.get('SELECT * FROM website_content WHERE dealerId = ?', dealerId);
-    return content || null;
+    const [websiteContent, dealerInfo] = await Promise.all([
+      db.get('SELECT * FROM website_content WHERE dealerId = ?', dealerId),
+      getDealerById(dealerId)
+    ]);
+  
+    if (!dealerInfo) {
+      return null; // or handle as an error, dealer must exist
+    }
+
+    // Return merged data, with website_content taking precedence
+    return {
+      dealerId: dealerId,
+      brandName: websiteContent?.brandName ?? dealerInfo.dealershipName,
+      logoUrl: websiteContent?.logoUrl ?? null,
+      tagline: websiteContent?.tagline ?? null,
+      aboutUs: websiteContent?.aboutUs ?? null,
+      contactPhone: websiteContent?.contactPhone ?? dealerInfo.phone,
+      contactEmail: websiteContent?.contactEmail ?? dealerInfo.email,
+      address: websiteContent?.address ?? `${dealerInfo.city}, ${dealerInfo.state}`,
+      activeTheme: websiteContent?.activeTheme ?? 'modern',
+    };
 }
+
 
 export async function upsertWebsiteContent(dealerId: string, content: Partial<WebsiteContent>): Promise<{ success: boolean; error?: string }> {
     const db = await getDB();
     try {
-        const existing = await getWebsiteContent(dealerId);
+        const existing = await db.get('SELECT 1 FROM website_content WHERE dealerId = ?', dealerId);
         if (existing) {
             const fields = Object.keys(content);
             if (fields.length === 0) return { success: true };
@@ -797,7 +817,3 @@ export async function getPlatformWideStats() {
         totalEmployees: totalEmployees?.count || 0,
     }
 }
-
-    
-
-    

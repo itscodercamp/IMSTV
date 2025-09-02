@@ -33,6 +33,7 @@ import type { Vehicle } from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 
 const websiteContentSchema = z.object({
   brandName: z.string().min(2, "Brand name is required."),
@@ -195,56 +196,58 @@ export default function CustomizeWebsitePage() {
     }
 
   return (
-    <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-2xl">Customize Your Website</CardTitle>
-                    <CardDescription>Update your brand information, contact details, and theme. These details will be reflected on your public website and APIs.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-8">
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-medium flex items-center gap-2"><ImageIcon className="h-5 w-5 text-primary" /> Brand Information</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg">
-                            <div className="space-y-6">
-                                <FormField control={form.control} name="brandName" render={({ field }) => (
-                                    <FormItem><FormLabel>Brand Name / Dealership Name</FormLabel><FormControl><Input placeholder="e.g., Sharma Motors" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name="tagline" render={({ field }) => (
-                                    <FormItem><FormLabel>Tagline (Optional)</FormLabel><FormControl><Input placeholder="e.g., Your Trusted Partner in Pre-Owned Cars" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                                )}/>
+    <div className="space-y-8">
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">Customize Your Website</CardTitle>
+                        <CardDescription>Update your brand information, contact details, and theme. These details will be reflected on your public website and APIs.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-8">
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-medium flex items-center gap-2"><ImageIcon className="h-5 w-5 text-primary" /> Brand Information</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg">
+                                <div className="space-y-6">
+                                    <FormField control={form.control} name="brandName" render={({ field }) => (
+                                        <FormItem><FormLabel>Brand Name / Dealership Name</FormLabel><FormControl><Input placeholder="e.g., Sharma Motors" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )}/>
+                                    <FormField control={form.control} name="tagline" render={({ field }) => (
+                                        <FormItem><FormLabel>Tagline (Optional)</FormLabel><FormControl><Input placeholder="e.g., Your Trusted Partner in Pre-Owned Cars" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )}/>
+                                </div>
+                                <ImageUploadField form={form} name="logoUrl" label="Your Logo" hint="dealership logo" />
                             </div>
-                             <ImageUploadField form={form} name="logoUrl" label="Your Logo" hint="dealership logo" />
                         </div>
-                    </div>
 
-                    <div className="space-y-4">
-                         <h3 className="text-lg font-medium">About & Contact Details</h3>
-                         <div className="p-4 border rounded-lg space-y-6">
-                            <FormField control={form.control} name="aboutUs" render={({ field }) => (
-                                <FormItem><FormLabel>About Us</FormLabel><FormControl><Textarea placeholder="Tell your customers about your dealership..." className="min-h-[120px]" {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
-                            )}/>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField control={form.control} name="contactPhone" render={({ field }) => (
-                                    <FormItem><FormLabel>Public Phone Number</FormLabel><FormControl><Input placeholder="Phone number to show on website" {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-medium">About & Contact Details</h3>
+                            <div className="p-4 border rounded-lg space-y-6">
+                                <FormField control={form.control} name="aboutUs" render={({ field }) => (
+                                    <FormItem><FormLabel>About Us</FormLabel><FormControl><Textarea placeholder="Tell your customers about your dealership..." className="min-h-[120px]" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
-                                <FormField control={form.control} name="contactEmail" render={({ field }) => (
-                                    <FormItem><FormLabel>Public Email Address</FormLabel><FormControl><Input type="email" placeholder="Email for customers" {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <FormField control={form.control} name="contactPhone" render={({ field }) => (
+                                        <FormItem><FormLabel>Public Phone Number</FormLabel><FormControl><Input placeholder="Phone number to show on website" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )}/>
+                                    <FormField control={form.control} name="contactEmail" render={({ field }) => (
+                                        <FormItem><FormLabel>Public Email Address</FormLabel><FormControl><Input type="email" placeholder="Email for customers" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )}/>
+                                </div>
+                                <FormField control={form.control} name="address" render={({ field }) => (
+                                    <FormItem><FormLabel>Full Address</FormLabel><FormControl><Textarea placeholder="Your dealership's full address" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                             </div>
-                             <FormField control={form.control} name="address" render={({ field }) => (
-                                <FormItem><FormLabel>Full Address</FormLabel><FormControl><Textarea placeholder="Your dealership's full address" {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
-                            )}/>
-                         </div>
-                    </div>
-                </CardContent>
-                <CardFooter className="flex justify-end">
-                     <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Saving Brand Info...</> : <><Save className="mr-2 h-4 w-4"/> Save Brand Info</>}
-                    </Button>
-                </CardFooter>
-            </Card>
-        </form>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="flex justify-end">
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Saving Brand Info...</> : <><Save className="mr-2 h-4 w-4"/> Save Brand Info</>}
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </form>
+        </Form>
 
         <Card>
             <CardHeader>
@@ -296,6 +299,6 @@ export default function CustomizeWebsitePage() {
                 </Table>
             </CardContent>
         </Card>
-    </Form>
+    </div>
   );
 }
