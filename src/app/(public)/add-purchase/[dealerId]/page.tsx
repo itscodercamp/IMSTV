@@ -1,3 +1,4 @@
+
 "use client";
 import * as React from "react";
 import Image from "next/image";
@@ -22,8 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MoreHorizontal, Edit, Trash2, Eye, AlertTriangle, PlusCircle, Search, CircleOff } from "lucide-react";
 import type { Vehicle } from "@/lib/types";
-import { Switch } from "../ui/switch";
-import { Label } from "../ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { updateVehicleAction, deleteVehicleAction } from "@/app/(main)/actions";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -36,10 +37,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MarkAsSoldDialog } from "./mark-as-sold-dialog";
+import { MarkAsSoldDialog } from "@/components/inventory/mark-as-sold-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "../ui/input";
+import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 
 const placeholderImage = 'https://placehold.co/600x400.png';
