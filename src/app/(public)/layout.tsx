@@ -1,14 +1,14 @@
 
 "use client";
 import * as React from "react";
-import { usePathname } from "next/navigation";
+import AdminLayout from "@/app/(admin)/layout";
+import MainLayout from "@/app/(main)/layout";
+
 
 export default function PublicLayout({
-    admin,
-    dealer
+    children,
 }: {
-    admin: React.ReactNode;
-    dealer: React.ReactNode;
+    children: React.ReactNode;
 }) {
     const [isAdmin, setIsAdmin] = React.useState(false);
     const [isDealer, setIsDealer] = React.useState(false);
@@ -28,14 +28,9 @@ export default function PublicLayout({
     }
 
     if (isAdmin) {
-        return admin;
+        return <AdminLayout inventory={null}>{children}</AdminLayout>;
     }
     
-    if (isDealer) {
-        return dealer;
-    }
-    
-    // Default or fallback view if no one is authenticated
-    // This part might need adjustment based on desired public-facing behavior
-    return dealer; 
+    // Default to dealer view if not admin, main layout will handle auth
+    return <MainLayout>{children}</MainLayout>;
 }
