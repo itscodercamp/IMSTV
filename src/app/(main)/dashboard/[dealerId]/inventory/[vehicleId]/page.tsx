@@ -223,23 +223,25 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
                 </AccordionContent>
               </AccordionItem>
 
-              <AccordionItem value="item-2">
-                <AccordionTrigger className="text-lg font-semibold">
-                    <div className="flex items-center gap-2"><UserCircle className="h-5 w-5"/>Seller & Buying Details</div>
-                </AccordionTrigger>
-                <AccordionContent className="space-y-4 pt-4">
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        <DetailRow icon={UserCircle} label="Seller Name" value={vehicle.sellerName} />
-                        <DetailRow icon={Phone} label="Seller Phone" value={vehicle.sellerPhone} />
-                        <DetailRow icon={Calendar} label="Buying Date" value={vehicle.buyingDate ? format(new Date(vehicle.buyingDate), "PPP") : 'N/A'} />
-                        <DetailRow icon={Banknote} label="Buying Price" value={`₹${vehicle.buyingPrice?.toLocaleString('en-IN')}`} />
-                        <DetailRow icon={Banknote} label="Loan Status" value={vehicle.loanStatus} />
-                         {vehicle.loanStatus === 'Open Loan' && <DetailRow icon={IndianRupee} label="Foreclosure Amount" value={`₹${vehicle.foreclosureAmount?.toLocaleString('en-IN')}`} />}
-                        <DetailRow icon={IndianRupee} label="Amount Paid to Seller" value={`₹${vehicle.amountPaidToSeller?.toLocaleString('en-IN')}`} />
-                        <DetailRow icon={FileUp} label="Payment Method" value={vehicle.sellerPaymentMethod} />
-                    </div>
-                </AccordionContent>
-              </AccordionItem>
+              {!isEmployee && (
+                <AccordionItem value="item-2">
+                  <AccordionTrigger className="text-lg font-semibold">
+                      <div className="flex items-center gap-2"><UserCircle className="h-5 w-5"/>Seller & Buying Details</div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                          <DetailRow icon={UserCircle} label="Seller Name" value={vehicle.sellerName} />
+                          <DetailRow icon={Phone} label="Seller Phone" value={vehicle.sellerPhone} />
+                          <DetailRow icon={Calendar} label="Buying Date" value={vehicle.buyingDate ? format(new Date(vehicle.buyingDate), "PPP") : 'N/A'} />
+                          <DetailRow icon={Banknote} label="Buying Price" value={`₹${vehicle.buyingPrice?.toLocaleString('en-IN')}`} />
+                          <DetailRow icon={Banknote} label="Loan Status" value={vehicle.loanStatus} />
+                           {vehicle.loanStatus === 'Open Loan' && <DetailRow icon={IndianRupee} label="Foreclosure Amount" value={`₹${vehicle.foreclosureAmount?.toLocaleString('en-IN')}`} />}
+                          <DetailRow icon={IndianRupee} label="Amount Paid to Seller" value={`₹${vehicle.amountPaidToSeller?.toLocaleString('en-IN')}`} />
+                          <DetailRow icon={FileUp} label="Payment Method" value={vehicle.sellerPaymentMethod} />
+                      </div>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
               
               <AccordionItem value="item-3">
                 <AccordionTrigger className="text-lg font-semibold">
@@ -284,31 +286,35 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
                 </AccordionContent>
               </AccordionItem>
 
-              <AccordionItem value="item-5">
-                <AccordionTrigger className="text-lg font-semibold">
-                  <div className="flex items-center gap-2"><FileText className="h-5 w-5"/>Documents</div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    {documentImages.map((image, index) => (
-                        <ImageCard key={`doc-${index}`} src={image.src} alt={image.alt} hint={image.hint} onClick={() => openPreview(documentImages, index)} />
-                    ))}
-                </AccordionContent>
-              </AccordionItem>
+              {!isEmployee && (
+                <AccordionItem value="item-5">
+                  <AccordionTrigger className="text-lg font-semibold">
+                    <div className="flex items-center gap-2"><FileText className="h-5 w-5"/>Documents</div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                      {documentImages.map((image, index) => (
+                          <ImageCard key={`doc-${index}`} src={image.src} alt={image.alt} hint={image.hint} onClick={() => openPreview(documentImages, index)} />
+                      ))}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
 
 
-              <AccordionItem value="item-6">
-                <AccordionTrigger className="text-lg font-semibold">
-                    <div className="flex items-center gap-2"><IndianRupee className="h-5 w-5"/>Dealer Financials</div>
-                </AccordionTrigger>
-                <AccordionContent className="space-y-6 pt-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        <DetailRow label="Purchase Price" value={`₹${vehicle.cost.toLocaleString('en-IN')}`} />
-                        <DetailRow label="Refurbishment Cost" value={`₹${vehicle.refurbishmentCost.toLocaleString('en-IN')}`} />
-                        <DetailRow label="Total Cost" value={`₹${(vehicle.cost + vehicle.refurbishmentCost).toLocaleString('en-IN')}`} />
-                        <DetailRow label="Potential Profit" value={<span className="text-green-500">₹{(vehicle.price - vehicle.cost - vehicle.refurbishmentCost).toLocaleString('en-IN')}</span>} />
-                    </div>
-                </AccordionContent>
-              </AccordionItem>
+              {!isEmployee && (
+                <AccordionItem value="item-6">
+                  <AccordionTrigger className="text-lg font-semibold">
+                      <div className="flex items-center gap-2"><IndianRupee className="h-5 w-5"/>Dealer Financials</div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-6 pt-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                          <DetailRow label="Purchase Price" value={`₹${vehicle.cost.toLocaleString('en-IN')}`} />
+                          <DetailRow label="Refurbishment Cost" value={`₹${vehicle.refurbishmentCost.toLocaleString('en-IN')}`} />
+                          <DetailRow label="Total Cost" value={`₹${(vehicle.cost + vehicle.refurbishmentCost).toLocaleString('en-IN')}`} />
+                          <DetailRow label="Potential Profit" value={<span className="text-green-500">₹{(vehicle.price - vehicle.cost - vehicle.refurbishmentCost).toLocaleString('en-IN')}</span>} />
+                      </div>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
             </Accordion>
         </CardContent>
         {!isEmployee && (
