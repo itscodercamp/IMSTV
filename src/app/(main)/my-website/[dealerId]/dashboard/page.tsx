@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { PartyPopper, Calendar, ExternalLink, Brush, MessageSquare, PieChart, Users, Eye, CheckCircle, ChevronLeft, ChevronRight, Settings, Copy, ShieldCheck, Clock, Loader2 } from "lucide-react";
+import { PartyPopper, Calendar, ExternalLink, Brush, MessageSquare, PieChart, Users, Eye, CheckCircle, ChevronLeft, ChevronRight, Settings, Copy, ShieldCheck, Clock, Loader2, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -270,9 +270,10 @@ export default function MyWebsiteDashboardPage() {
                  <Table>
                     <TableHeader>
                         <TableRow>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Vehicle</TableHead>
-                        <TableHead className="text-right">Offer Price</TableHead>
+                            <TableHead>Customer</TableHead>
+                            <TableHead>Vehicle</TableHead>
+                            <TableHead className="text-right">Offer Price</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -284,6 +285,20 @@ export default function MyWebsiteDashboardPage() {
                             </TableCell>
                             <TableCell>{offer.vehicle}</TableCell>
                             <TableCell className="text-right font-semibold">₹{offer.offerPrice.toLocaleString('en-IN')}</TableCell>
+                            <TableCell className="text-right">
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="text-destructive">
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Delete Offer</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </TableCell>
                         </TableRow>
                         ))}
                     </TableBody>
@@ -324,7 +339,8 @@ export default function MyWebsiteDashboardPage() {
                         <TableRow>
                         <TableHead className="w-[200px]">Customer</TableHead>
                         <TableHead>Message</TableHead>
-                        <TableHead className="w-[150px] text-right">Received</TableHead>
+                        <TableHead className="w-[150px]">Received</TableHead>
+                        <TableHead className="w-[100px] text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -338,7 +354,21 @@ export default function MyWebsiteDashboardPage() {
                             <TableCell className="text-sm text-muted-foreground">
                                 <p className="truncate">{msg.message}</p>
                             </TableCell>
-                            <TableCell className="text-right text-xs">{format(msg.date, "PPp")}</TableCell>
+                            <TableCell className="text-xs">{format(msg.date, "PPp")}</TableCell>
+                            <TableCell className="text-right">
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                             <Button variant="ghost" size="icon" className="text-destructive">
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Delete Message</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </TableCell>
                         </TableRow>
                         ))}
                     </TableBody>
