@@ -2,16 +2,21 @@
 "use client";
 
 import * as React from "react";
-import type { Employee, Vehicle } from "@/lib/types";
-import { getEmployeeDashboardData, fetchVehiclesForDealerAction } from "../actions";
+import type { Employee, Vehicle, Lead, SalarySlip, Dealer } from "@/lib/types";
+import { getEmployeeDashboardData, fetchVehiclesForDealerAction, getLeadsByEmployeeIdAction, getSalarySlipsAction, getDealerInfo } from "../actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Car } from "lucide-react";
+import { Users, Car, User, FileSpreadsheet, PlusCircle, LayoutGrid, LayoutDashboard } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import Image from "next/image";
-import { Badge } from "@/components/ui/badge";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
+import { useSearchParams } from "next/navigation";
+import { AddLeadForm } from "@/components/leads/add-lead-form";
+import { RecentLeadsList } from "@/components/leads/recent-leads-list";
+import { MyLeadsTable } from "@/components/leads/my-leads-table";
+import { MyProfileCard } from "@/components/employees/my-profile-card";
+import { MySalarySlipsTable } from "@/components/salary/my-salary-slips-table";
 
 const placeholderImage = 'https://placehold.co/600x400.png';
 
@@ -36,45 +41,8 @@ function DashboardLoader() {
     )
 }
 
-
-export default function EmployeeDashboardPage() {
-    const [employee, setEmployee] = React.useState<Employee | null>(null);
-    const [dashboardData, setDashboardData] = React.useState<{ myLeadsCount: number; availableVehiclesCount: number } | null>(null);
-    const [vehicles, setVehicles] = React.useState<Vehicle[]>([]);
-    const [isLoading, setIsLoading] = React.useState(true);
-
-    React.useEffect(() => {
-        const info = localStorage.getItem("employee_info");
-        if(info) {
-            const parsedInfo: Employee = JSON.parse(info);
-            setEmployee(parsedInfo);
-            fetchInitialData(parsedInfo.id, parsedInfo.dealerId);
-        } else {
-            setIsLoading(false);
-        }
-    }, [])
-
-    const fetchInitialData = async (employeeId: string, dealerId: string) => {
-        setIsLoading(true);
-        try {
-            const [fetchedDashboardData, fetchedVehicles] = await Promise.all([
-                getEmployeeDashboardData(employeeId, dealerId),
-                fetchVehiclesForDealerAction(dealerId)
-            ]);
-            setDashboardData(fetchedDashboardData);
-            setVehicles(fetchedVehicles.filter(v => v.status === 'For Sale'));
-        } catch (error) {
-            console.error("Failed to fetch initial data", error);
-        } finally {
-            setIsLoading(false);
-        }
-    }
-  
-    if (isLoading || !employee || !dashboardData) {
-        return <DashboardLoader />;
-    }
-
-    return (
+function MainDashboard({ employee, dashboardData, vehicles }: { employee: Employee, dashboardData: {myLeadsCount: number, availableVehiclesCount: number}, vehicles: Vehicle[] }) {
+     return (
       <div className="space-y-6">
         <div className="grid gap-4 grid-cols-2">
             <StatCard
@@ -126,4 +94,122 @@ export default function EmployeeDashboardPage() {
         </Card>
       </div>
   );
+}
+
+function NewLeadTab({ employee, inventory, onLeadAdded }: { employee: Employee, inventory: Vehicle[], onLeadAdded: () => void }) {
+    return (
+        <div className="grid md:grid-cols-3 gap-8">
+            <Card className="md:col-span-2">
+                 <CardHeader>
+                    <CardTitle className="text-xl">Add New Lead</CardTitle>
+                    <CardDescription>Fill out the form below to create a new customer lead.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <AddLeadForm employee={employee} inventory={inventory} onLeadAdded={onLeadAdded} />
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle className="text-xl">Recent Leads</CardTitle>
+                     <CardDescription>Your 3 most recently added leads.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <React.Suspense fallback={<p>Loading recent leads...</p>}>
+                       <RecentLeadsListWrapper employeeId={employee.id} />
+                    </React.Suspense>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
+function RecentLeadsListWrapper({ employeeId }: { employeeId: string }) {
+    const [recentLeads, setRecentLeads] = React.useState<Lead[]>([]);
+
+    React.useEffect(() => {
+        getLeadsByEmployeeIdAction(employeeId).then(allLeads => {
+            setRecentLeads(allLeads.slice(0, 3));
+        });
+    }, [employeeId]);
+
+    return <RecentLeadsList leads={recentLeads} />
+}
+
+
+export default function EmployeeDashboardPage() {
+    const searchParams = useSearchParams();
+    const tab = searchParams.get('tab') || '';
+    
+    const [employee, setEmployee] = React.useState<Employee | null>(null);
+    const [dealer, setDealer] = React.useState<Dealer | null>(null);
+    const [dashboardData, setDashboardData] = React.useState<{ myLeadsCount: number; availableVehiclesCount: number } | null>(null);
+    const [vehicles, setVehicles] = React.useState<Vehicle[]>([]);
+    const [myLeads, setMyLeads] = React.useState<Lead[]>([]);
+    const [salarySlips, setSalarySlips] = React.useState<SalarySlip[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
+
+    const loadInitialData = React.useCallback(async (employeeInfo: Employee) => {
+        setIsLoading(true);
+        try {
+            const [fetchedDashboardData, fetchedVehicles, fetchedLeads, fetchedSalarySlips, fetchedDealer] = await Promise.all([
+                getEmployeeDashboardData(employeeInfo.id, employeeInfo.dealerId),
+                fetchVehiclesForDealerAction(employeeInfo.dealerId),
+                getLeadsByEmployeeIdAction(employeeInfo.id),
+                getSalarySlipsAction(employeeInfo.id),
+                getDealerInfo(employeeInfo.dealerId)
+            ]);
+            setDashboardData(fetchedDashboardData);
+            setVehicles(fetchedVehicles.filter(v => v.status === 'For Sale'));
+            setMyLeads(fetchedLeads);
+            setSalarySlips(fetchedSalarySlips);
+            setDealer(fetchedDealer as Dealer);
+        } catch (error) {
+            console.error("Failed to fetch initial data", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    React.useEffect(() => {
+        const info = localStorage.getItem("employee_info");
+        if (info) {
+            const parsedInfo: Employee = JSON.parse(info);
+            setEmployee(parsedInfo);
+            loadInitialData(parsedInfo);
+        } else {
+            setIsLoading(false);
+        }
+    }, [loadInitialData])
+
+    const handleAvatarChange = (newAvatarUrl: string) => {
+        if(employee) {
+            const updatedEmployee = { ...employee, avatarUrl: newAvatarUrl };
+            setEmployee(updatedEmployee);
+            localStorage.setItem("employee_info", JSON.stringify(updatedEmployee));
+        }
+    }
+  
+    if (isLoading || !employee) {
+        return <DashboardLoader />;
+    }
+
+    const renderContent = () => {
+        switch (tab) {
+            case 'new-lead':
+                return <NewLeadTab employee={employee} inventory={vehicles} onLeadAdded={() => loadInitialData(employee)} />;
+            case 'my-leads':
+                return <MyLeadsTable leads={myLeads} />;
+            case 'profile':
+                return <MyProfileCard employee={employee} onAvatarChange={handleAvatarChange} />;
+            case 'salary-slips':
+                 if (!dealer) return <DashboardLoader />;
+                 return <MySalarySlipsTable salarySlips={salarySlips} employee={employee} dealer={dealer} />;
+            case '': // Default dashboard
+            default:
+                if (!dashboardData) return <DashboardLoader />;
+                return <MainDashboard employee={employee} dashboardData={dashboardData} vehicles={vehicles} />;
+        }
+    }
+
+    return renderContent();
 }
