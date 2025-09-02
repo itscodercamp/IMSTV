@@ -104,7 +104,15 @@ export default function CustomizeWebsitePage() {
 
     const form = useForm<WebsiteContentValues>({
         resolver: zodResolver(websiteContentSchema),
-        defaultValues: {},
+        defaultValues: {
+            brandName: "",
+            logoUrl: "",
+            tagline: "",
+            aboutUs: "",
+            contactPhone: "",
+            contactEmail: "",
+            address: "",
+        },
     });
 
     React.useEffect(() => {
@@ -112,7 +120,15 @@ export default function CustomizeWebsitePage() {
             getWebsiteContentAction(dealerId)
                 .then(content => {
                     if (content) {
-                        form.reset(content);
+                        form.reset({
+                            brandName: content.brandName || "",
+                            logoUrl: content.logoUrl || "",
+                            tagline: content.tagline || "",
+                            aboutUs: content.aboutUs || "",
+                            contactPhone: content.contactPhone || "",
+                            contactEmail: content.contactEmail || "",
+                            address: content.address || "",
+                        });
                     }
                 })
                 .finally(() => setIsLoading(false));
