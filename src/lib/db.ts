@@ -40,6 +40,8 @@ async function initializeDatabase(dbInstance: Database) {
     );
   `);
 
+  // Ensure website_content is dropped and created correctly after dealers
+  await dbInstance.exec(`DROP TABLE IF EXISTS website_content;`);
   await dbInstance.exec(`
     CREATE TABLE IF NOT EXISTS website_content (
       dealerId TEXT PRIMARY KEY,
