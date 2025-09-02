@@ -54,7 +54,7 @@ async function initializeDatabase(dbInstance: Database) {
       address TEXT,
       activeTheme TEXT,
       websiteStatus TEXT DEFAULT 'not_requested' CHECK(websiteStatus IN ('not_requested', 'pending_approval', 'approved', 'rejected')),
-      isLive BOOLEAN DEFAULT false,
+      isLive BOOLEAN DEFAULT 0,
       FOREIGN KEY (dealerId) REFERENCES dealers(id) ON DELETE CASCADE
     );
   `);
@@ -828,12 +828,14 @@ export async function getPlatformWideStats() {
         totalVehicles,
         soldVehicles,
         inStockVehicles,
-        totalEmployees
+        totalEmployees,
+        liveWebsites
     ] = await Promise.all([
         db.get('SELECT COUNT(*) as count FROM vehicles'),
         db.get("SELECT COUNT(*) as count FROM vehicles WHERE status = 'Sold'"),
         db.get("SELECT COUNT(*) as count FROM vehicles WHERE status = 'For Sale'"),
         db.get('SELECT COUNT(*) as count FROM employees'),
+        db.get("SELECT COUNT(*) as count FROM website_content WHERE isLive = 1"),
     ]);
 
     return {
@@ -841,5 +843,6 @@ export async function getPlatformWideStats() {
         soldVehicles: soldVehicles?.count || 0,
         inStockVehicles: inStockVehicles?.count || 0,
         totalEmployees: totalEmployees?.count || 0,
+        liveWebsites: liveWebsites?.count || 0,
     }
 }

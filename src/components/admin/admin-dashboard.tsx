@@ -2,10 +2,10 @@
 "use client";
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { User, UserCheck, UserX, Search, MoreHorizontal, CheckCircle, XCircle, Ban, Clock, Trash2, AlertTriangle, Eye, Car, Bike, Package, Users as UsersIcon, BadgeCheck, ShoppingCart } from "lucide-react";
+import { User, UserCheck, UserX, Search, MoreHorizontal, CheckCircle, XCircle, Ban, Clock, Trash2, AlertTriangle, Eye, Car, Bike, Package, Users as UsersIcon, BadgeCheck, ShoppingCart, Globe } from "lucide-react";
 import type { Dealer } from "@/lib/types";
 import { Input } from "../ui/input";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "../ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Badge } from "../ui/badge";
@@ -38,7 +38,7 @@ const statusConfig = {
 
 const DashboardContent = ({ dealerCounts, platformStats }: { 
     dealerCounts: { total: number, approved: number, pending: number, deactivated: number },
-    platformStats?: { totalVehicles: number, soldVehicles: number, inStockVehicles: number, totalEmployees: number }
+    platformStats?: { totalVehicles: number, soldVehicles: number, inStockVehicles: number, totalEmployees: number, liveWebsites: number }
 }) => {
     return (
         <div className="space-y-6">
@@ -56,11 +56,12 @@ const DashboardContent = ({ dealerCounts, platformStats }: {
                 <Separator />
                 <div>
                     <h2 className="text-xl font-semibold tracking-tight text-foreground mb-2">Platform-Wide Stats</h2>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                         <StatCard title="All Registered Vehicles" value={platformStats.totalVehicles} icon={Package} color="text-blue-500"/>
                         <StatCard title="All Sold Vehicles" value={platformStats.soldVehicles} icon={ShoppingCart} color="text-red-500"/>
                         <StatCard title="All Available in Stock" value={platformStats.inStockVehicles} icon={BadgeCheck} color="text-green-500"/>
                         <StatCard title="All Employees" value={platformStats.totalEmployees} icon={UsersIcon} color="text-orange-500"/>
+                        <StatCard title="Live Websites" value={platformStats.liveWebsites} icon={Globe} color="text-purple-500"/>
                     </div>
                 </div>
                 </>
