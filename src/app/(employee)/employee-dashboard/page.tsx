@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -84,7 +83,7 @@ function MainDashboard({ employee, dashboardData, vehicles }: { employee: Employ
                                     <p className="text-sm font-bold text-primary mt-1">₹{vehicle.price.toLocaleString('en-IN')}</p>
                                 </div>
                                  <Button asChild variant="outline" size="sm">
-                                    <Link href={`/inventory/${employee.dealerId}/${vehicle.id}`}>View</Link>
+                                    <Link href={`/dashboard/${employee.dealerId}/inventory/${vehicle.id}`}>View</Link>
                                 </Button>
                             </div>
                         ))
