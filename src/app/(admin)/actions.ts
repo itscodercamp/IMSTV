@@ -18,7 +18,7 @@ import {
 } from "@/lib/db"; 
 import { revalidatePath } from "next/cache";
 
-export async function fetchDealers(): Promise<Dealer[]> {
+export async function fetchDealers(): Promise<(Dealer & {stats: any})[]> {
     return await fetchDealersDb();
 }
 
@@ -77,3 +77,4 @@ export async function getDealerLeads(dealerId: string): Promise<Lead[]> {
 export async function fetchPlatformWideStats() {
     return await getPlatformWideStats();
 }
+

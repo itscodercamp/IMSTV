@@ -522,7 +522,7 @@ export async function getAllLeads(dealerId: string): Promise<(Lead & { vehicleMa
     return results as (Lead & { vehicleMake?: string, vehicleModel?: string, employeeName?: string })[];
 }
 
-export async function addLead(lead: Omit<Lead, 'id' | 'isArchived'>): Promise<{ success: boolean, error?: string }> {
+export async function addLead(lead: Omit<Lead, 'id'>): Promise<{ success: boolean, error?: string }> {
     const db = await getDB();
     try {
         await db.run(
@@ -543,7 +543,7 @@ export async function getLeadsByEmployeeId(employeeId: string): Promise<Lead[]> 
         SELECT l.*, v.make as "vehicleMake", v.model as "vehicleModel"
         FROM leads l
         LEFT JOIN vehicles v ON l.vehicleId = v.id
-        WHERE l.assignedTo = ? AND l.isArchived = 0
+        WHERE l.assignedTo = ?
         ORDER BY l.dateAdded DESC
     `, employeeId);
     return results as Lead[];
@@ -686,6 +686,11 @@ export async function updateVehicleDb(vehicleId: string, data: Partial<Vehicle &
         if (result.changes === 0) {
             return { success: false, error: 'Vehicle not found or no changes made.' };
         }
+        
+        if (data.status === 'Sold') {
+            await archiveLeadsForVehicle(vehicleId);
+        }
+        
         return { success: true };
     } catch (error: any) {
         console.error('Error updating vehicle:', error);
@@ -806,22 +811,43 @@ export async function testDbConnection() {
 
 
 // ADMIN FUNCTIONS
-export async function fetchDealers(): Promise<Dealer[]> {
+export async function fetchDealers(): Promise<(Dealer & {stats: any})[]> {
     const db = await getDB();
     try {
-        const results = await db.all(`
-            SELECT 
-                d.*, 
-                wc.websiteStatus 
-            FROM dealers d 
-            LEFT JOIN website_content wc ON d.id = wc.dealerId
-        `);
-        return results.map(r => ({...r, websiteStatus: r.websiteStatus || 'not_requested'})) as Dealer[];
+        const dealers = await db.all('SELECT d.*, wc.websiteStatus FROM dealers d LEFT JOIN website_content wc ON d.id = wc.dealerId');
+        
+        const dealersWithStats = await Promise.all(dealers.map(async (dealer) => {
+            const stats = await db.get(`
+                SELECT
+                    (SELECT COUNT(*) FROM vehicles WHERE dealerId = ?) as totalVehicles,
+                    (SELECT COUNT(*) FROM vehicles WHERE dealerId = ? AND status = 'Sold') as soldVehicles,
+                    (SELECT SUM(sellingPrice - cost - refurbishmentCost) FROM vehicles WHERE dealerId = ? AND status = 'Sold') as totalProfit,
+                    (SELECT SUM(sellingPrice) FROM vehicles WHERE dealerId = ? AND status = 'Sold') as soldValue,
+                    (SELECT COUNT(*) FROM employees WHERE dealerId = ?) as totalEmployees,
+                    (SELECT COUNT(*) FROM leads WHERE dealerId = ?) as totalLeads
+            `, dealer.id, dealer.id, dealer.id, dealer.id, dealer.id, dealer.id);
+
+            return {
+                ...dealer,
+                websiteStatus: dealer.websiteStatus || 'not_requested',
+                stats: {
+                    totalVehicles: stats.totalVehicles || 0,
+                    soldVehicles: stats.soldVehicles || 0,
+                    totalProfit: stats.totalProfit || 0,
+                    soldValue: stats.soldValue || 0,
+                    totalEmployees: stats.totalEmployees || 0,
+                    totalLeads: stats.totalLeads || 0,
+                }
+            };
+        }));
+        
+        return dealersWithStats;
     } catch (error) {
-        console.error("Failed to fetch dealers:", error);
+        console.error("Failed to fetch dealers with stats:", error);
         return [];
     }
 }
+
 
 export async function updateDealerStatusAction(id: string, status: Dealer['status']): Promise<{ success: boolean }> {
     const db = await getDB();
@@ -891,3 +917,4 @@ export async function getPlatformWideStats() {
 }
 
     
+

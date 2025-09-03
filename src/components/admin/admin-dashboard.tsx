@@ -1,8 +1,8 @@
 
 "use client";
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { User, UserCheck, UserX, Search, MoreHorizontal, CheckCircle, XCircle, Ban, Clock, Trash2, AlertTriangle, Eye, Car, Bike, Package, Users as UsersIcon, BadgeCheck, ShoppingCart, Globe, BarChart, AreaChart, Map, Target } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { User, UserCheck, UserX, Search, MoreHorizontal, CheckCircle, XCircle, Ban, Clock, Trash2, AlertTriangle, Eye, Car, Bike, Package, Users as UsersIcon, BadgeCheck, ShoppingCart, Globe, BarChart, AreaChart, Map, Target, Crown, IndianRupee, Mail, Phone, ExternalLink } from "lucide-react";
 import type { Dealer } from "@/lib/types";
 import { Input } from "../ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "../ui/dropdown-menu";
@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
 import Link from 'next/link';
 import { Separator } from "../ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 
 const StatCard = ({ title, value, icon: Icon, color }: { title: string, value: number | string, icon: React.ElementType, color: string }) => (
@@ -29,50 +30,123 @@ const StatCard = ({ title, value, icon: Icon, color }: { title: string, value: n
     </Card>
 )
 
-const AnalyticsCard = ({ title, description, icon: Icon }: { title: string, description: string, icon: React.ElementType }) => (
-    <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-        <CardHeader>
-            <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                    <Icon className="h-5 w-5 text-primary"/>
-                </div>
-                <CardTitle className="text-base">{title}</CardTitle>
-            </div>
-        </CardHeader>
-        <CardContent>
-            <CardDescription>{description}</CardDescription>
-        </CardContent>
-    </Card>
-);
-
 const statusConfig = {
     'approved': { variant: 'default', icon: CheckCircle, label: 'Approved', color: 'text-green-500' },
     'pending': { variant: 'secondary', icon: Clock, label: 'Pending', color: 'text-yellow-500' },
     'deactivated': { variant: 'destructive', icon: Ban, label: 'Deactivated', color: 'text-red-500' },
 } as const;
 
+const websiteStatusConfig = {
+    'approved': { variant: 'default', label: 'Approved', className: 'bg-green-100 text-green-800 border-green-200' },
+    'pending_approval': { variant: 'secondary', label: 'Pending', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+    'rejected': { variant: 'destructive', label: 'Rejected', className: 'bg-red-100 text-red-800 border-red-200'},
+    'not_requested': { variant: 'outline', label: 'Not Live', className: '' },
+} as const;
 
-const DashboardContent = ({ dealerCounts, platformStats }: { 
-    dealerCounts: { total: number, approved: number, pending: number, deactivated: number },
+
+const DealerStat = ({ icon: Icon, value, label }: {icon: React.ElementType, value: string | number, label: string}) => (
+    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" />
+        <span className="font-medium">{value}</span>
+        <span>{label}</span>
+    </div>
+)
+
+function getInitials(name: string) {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase() || 'D';
+}
+
+const DealerPerformanceCard = ({ dealer }: { dealer: Dealer & { stats: any }}) => {
+    const { name, dealershipName, state, phone, stats, websiteStatus } = dealer;
+    const { totalVehicles, soldVehicles, totalProfit, totalEmployees, totalLeads } = stats;
+    const { variant, label, className } = websiteStatusConfig[websiteStatus ?? 'not_requested'];
+    
+    return (
+        <Card className="flex flex-col">
+            <CardHeader className="flex flex-row items-start gap-4 space-y-0">
+                <Avatar className="h-12 w-12 border">
+                    <AvatarImage src={`https://avatar.vercel.sh/${dealershipName}`} alt={dealershipName} />
+                    <AvatarFallback>{getInitials(dealershipName)}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                    <CardTitle className="text-base">{dealershipName}</CardTitle>
+                    <CardDescription>{name} - {state}</CardDescription>
+                </div>
+                 <Button asChild variant="outline" size="icon" className="h-7 w-7">
+                    <Link href={`/admin/users/${dealer.id}`}><ExternalLink className="h-4 w-4"/></Link>
+                 </Button>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm flex-grow">
+                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <DealerStat icon={Car} value={totalVehicles} label="Vehicles" />
+                    <DealerStat icon={ShoppingCart} value={soldVehicles} label="Sold" />
+                    <DealerStat icon={IndianRupee} value={totalProfit.toLocaleString('en-IN')} label="Profit" />
+                    <DealerStat icon={UsersIcon} value={totalEmployees} label="Staff" />
+                    <DealerStat icon={Target} value={totalLeads} label="Leads" />
+                 </div>
+            </CardContent>
+            <CardFooter className="text-xs text-muted-foreground justify-between">
+                <div className="flex items-center gap-2">
+                    <Phone className="h-3 w-3"/> {phone}
+                </div>
+                 <Badge variant={variant} className={cn("text-xs", className)}>{label}</Badge>
+            </CardFooter>
+        </Card>
+    )
+}
+
+const TopPerformerCard = ({ dealer, rank }: { dealer: Dealer & { stats: any }, rank: number}) => {
+    const { name, dealershipName, stats } = dealer;
+    const { soldValue } = stats;
+     const rankColor = rank === 1 ? "text-amber-500" : rank === 2 ? "text-slate-400" : rank === 3 ? "text-amber-700" : "text-muted-foreground";
+
+    return (
+        <div className="flex items-center gap-4 py-2 px-1">
+            <div className={`flex items-center justify-center w-6 font-bold ${rankColor}`}><Crown className="h-4 w-4"/></div>
+             <Avatar className="h-9 w-9">
+                <AvatarImage src={`https://avatar.vercel.sh/${dealershipName}`} alt={dealershipName} />
+                <AvatarFallback>{getInitials(dealershipName)}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+                <p className="text-sm font-medium leading-none">{dealershipName}</p>
+                <p className="text-xs text-muted-foreground">{name}</p>
+            </div>
+            <div className="text-right">
+                <p className="text-sm font-semibold">₹{soldValue.toLocaleString('en-IN')}</p>
+                <p className="text-xs text-muted-foreground">Sales</p>
+            </div>
+        </div>
+    )
+}
+
+
+const DashboardContent = ({ dealers, platformStats }: { 
+    dealers: (Dealer & { stats: any })[],
     platformStats?: { totalVehicles: number, soldVehicles: number, inStockVehicles: number, totalEmployees: number, liveWebsites: number }
 }) => {
+    const [searchTerm, setSearchTerm] = React.useState("");
+
+    const filteredDealers = React.useMemo(() => {
+        if (!searchTerm) return dealers;
+        return dealers.filter(d => 
+            d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            d.dealershipName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            d.state.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            d.phone.includes(searchTerm)
+        );
+    }, [dealers, searchTerm]);
+    
+    const topPerformers = React.useMemo(() => {
+        return [...dealers].sort((a,b) => b.stats.soldValue - a.stats.soldValue).slice(0, 10);
+    }, [dealers]);
+
+
     return (
         <div className="space-y-6">
-            <div>
-                <h2 className="text-lg font-semibold tracking-tight text-foreground mb-2">Dealerships Overview</h2>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <StatCard title="Total Dealers" value={dealerCounts.total} icon={User} color="text-sky-500"/>
-                    <StatCard title="Approved" value={dealerCounts.approved} icon={UserCheck} color="text-green-500"/>
-                    <StatCard title="Pending" value={dealerCounts.pending} icon={Clock} color="text-yellow-500"/>
-                    <StatCard title="Deactivated" value={dealerCounts.deactivated} icon={UserX} color="text-red-500"/>
-                </div>
-            </div>
             {platformStats && (
-                <>
-                <Separator />
                 <div>
                     <h2 className="text-lg font-semibold tracking-tight text-foreground mb-2">Platform-Wide Stats</h2>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                    <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
                         <StatCard title="All Vehicles" value={platformStats.totalVehicles} icon={Package} color="text-blue-500"/>
                         <StatCard title="Sold" value={platformStats.soldVehicles} icon={ShoppingCart} color="text-red-500"/>
                         <StatCard title="In Stock" value={platformStats.inStockVehicles} icon={BadgeCheck} color="text-green-500"/>
@@ -80,20 +154,41 @@ const DashboardContent = ({ dealerCounts, platformStats }: {
                         <StatCard title="Live Websites" value={platformStats.liveWebsites} icon={Globe} color="text-purple-500"/>
                     </div>
                 </div>
-                </>
             )}
              <Separator />
             <div>
-                 <h2 className="text-lg font-semibold tracking-tight text-foreground mb-2">Platform Analytics</h2>
-                 <div className="relative mb-4">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search analytics & reports..." className="pl-8"/>
-                 </div>
-                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                     <AnalyticsCard title="Sales Trends" description="Analyze monthly and yearly sales performance." icon={AreaChart} />
-                     <AnalyticsCard title="Inventory by Category" description="View breakdown of two-wheelers vs. four-wheelers." icon={BarChart} />
-                     <AnalyticsCard title="Lead Conversion" description="Track lead sources and conversion rates." icon={Target} />
-                     <AnalyticsCard title="Regional Performance" description="See sales data based on dealer location." icon={Map} />
+                 <h2 className="text-lg font-semibold tracking-tight text-foreground mb-2">Dealer Performance</h2>
+                 
+                 <div className="grid lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 space-y-4">
+                        <div className="relative">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Search dealers by name, state, phone..." 
+                                className="pl-8"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            {filteredDealers.map(dealer => (
+                                <DealerPerformanceCard key={dealer.id} dealer={dealer}/>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="lg:col-span-1">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Top Performers</CardTitle>
+                                <CardDescription>Top 10 dealers by all-time sales value.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                {topPerformers.map((dealer, index) => (
+                                    <TopPerformerCard key={dealer.id} dealer={dealer} rank={index + 1} />
+                                ))}
+                            </CardContent>
+                        </Card>
+                    </div>
                  </div>
             </div>
 
@@ -254,7 +349,7 @@ const UsersContent = ({ users, isLoading, onUpdateStatus, onDeleteUser }: { user
 
 
 export function AdminDashboard({ platformStats }: { platformStats?: any }) {
-    const [userList, setUserList] = React.useState<Dealer[]>([]);
+    const [userList, setUserList] = React.useState<(Dealer & { stats: any })[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const pathname = usePathname();
 
@@ -275,17 +370,6 @@ export function AdminDashboard({ platformStats }: { platformStats?: any }) {
         loadDealers();
     }, [loadDealers]);
     
-    const dealerCounts = React.useMemo(() => {
-        const counts = userList.reduce((acc, user) => {
-            acc[user.status] = (acc[user.status] || 0) + 1;
-            return acc;
-        }, { approved: 0, pending: 0, deactivated: 0 });
-    
-        return {
-            ...counts,
-            total: userList.length,
-        };
-    }, [userList]);
 
     const handleUpdateStatus = async (userId: string, status: Dealer['status']) => {
         const result = await updateDealerStatusAction(userId, status);
@@ -331,5 +415,6 @@ export function AdminDashboard({ platformStats }: { platformStats?: any }) {
         return <UsersContent users={userList} isLoading={isLoading} onUpdateStatus={handleUpdateStatus} onDeleteUser={handleDeleteUser} />
     }
 
-    return <DashboardContent dealerCounts={dealerCounts} platformStats={platformStats} />
+    return <DashboardContent dealers={userList} platformStats={platformStats} />
 }
+
