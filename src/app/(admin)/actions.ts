@@ -41,8 +41,12 @@ export async function updateDealerAction(dealerId: string, data: Partial<Omit<De
     return result;
 }
 
-export async function updateDealerStatusAction(id: string, status: Dealer['status']): Promise<{ success: boolean }> {
-    return await updateDealerStatusDb(id, status);
+export async function updateDealerStatusAction(id: string, status: Dealer['status'], reason?: string): Promise<{ success: boolean }> {
+    const result = await updateDealerStatusDb(id, status, reason);
+     if (result.success) {
+        revalidatePath(`/admin/users`);
+    }
+    return result;
 }
 
 export async function updateWebsiteStatusAction(dealerId: string, status: WebsiteContent['websiteStatus']): Promise<{ success: boolean; error?: string }> {

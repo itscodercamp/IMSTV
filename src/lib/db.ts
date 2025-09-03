@@ -39,7 +39,8 @@ async function initializeDatabase(dbInstance: Database) {
       city TEXT NOT NULL,
       state TEXT NOT NULL,
       vehicleCategory TEXT NOT NULL,
-      status TEXT NOT NULL CHECK(status IN ('approved', 'pending', 'deactivated'))
+      status TEXT NOT NULL CHECK(status IN ('approved', 'pending', 'deactivated')),
+      deactivationReason TEXT
     );
   `);
 
@@ -544,7 +545,7 @@ export async function getLeadsByEmployeeId(employeeId: string): Promise<Lead[]> 
         SELECT l.*, v.make as "vehicleMake", v.model as "vehicleModel"
         FROM leads l
         LEFT JOIN vehicles v ON l.vehicleId = v.id
-        WHERE l.assignedTo = ?
+        WHERE l.assignedTo = ? AND l.isArchived = 0
         ORDER BY l.dateAdded DESC
     `, employeeId);
     return results as Lead[];
@@ -850,10 +851,15 @@ export async function fetchDealers(): Promise<(Dealer & {stats: any})[]> {
 }
 
 
-export async function updateDealerStatusAction(id: string, status: Dealer['status']): Promise<{ success: boolean }> {
+export async function updateDealerStatusAction(id: string, status: Dealer['status'], reason?: string): Promise<{ success: boolean }> {
     const db = await getDB();
     try {
-        await db.run('UPDATE dealers SET status = ? WHERE id = ?', status, id);
+        if (status === 'deactivated') {
+            await db.run('UPDATE dealers SET status = ?, deactivationReason = ? WHERE id = ?', status, reason, id);
+        } else {
+            // Clear reason if re-activating or approving
+            await db.run('UPDATE dealers SET status = ?, deactivationReason = NULL WHERE id = ?', status, id);
+        }
         return { success: true };
     } catch (error) {
         console.error("Failed to update status:", error);

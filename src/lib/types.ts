@@ -130,6 +130,7 @@ export interface Lead {
   dateAdded: string;
   otherVehicleName?: string;
   otherVehicleReg?: string;
+  isArchived?: boolean;
 
   // Joined properties
   vehicleMake?: string;
@@ -149,6 +150,7 @@ export interface Dealer {
     phone: string;
     password?: string; // Should be handled securely on a server
     websiteStatus?: WebsiteContent['websiteStatus'];
+    deactivationReason?: string | null;
 }
 
 export interface SalarySlip {

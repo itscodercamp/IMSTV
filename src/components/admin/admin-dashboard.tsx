@@ -19,6 +19,10 @@ import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
+import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
 
 const TooltipList = ({ items }: { items: { name: string, dealershipName: string }[] }) => {
     if (!items || items.length === 0) return <p>No dealers in this category.</p>;
@@ -38,7 +42,7 @@ const TooltipList = ({ items }: { items: { name: string, dealershipName: string 
 
 const StatCard = ({ title, value, icon: Icon, color, tooltipContent, onClick }: { title: string, value: number | string, icon: React.ElementType, color: string, tooltipContent?: React.ReactNode, onClick?: () => void }) => {
     const cardContent = (
-         <Card className={cn(onClick && "cursor-pointer hover:bg-muted/50 transition-colors")}>
+         <Card className={cn("cursor-pointer hover:bg-muted/50 transition-colors", onClick && "cursor-pointer")}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
                 <Icon className={`h-4 w-4 ${color}`} />
@@ -252,21 +256,66 @@ const DashboardContent = ({ dealers, platformStats }: {
     )
 }
 
-const UsersContent = ({ users, isLoading, onUpdateStatus, onDeleteUser }: { users: Dealer[], isLoading: boolean, onUpdateStatus: (id: string, status: Dealer['status']) => void, onDeleteUser: (id: string) => void }) => {
+const DeactivationDialog = ({ user, onConfirm, onCancel }: { user: Dealer | null, onConfirm: (reason: string) => void, onCancel: () => void }) => {
+    const [reason, setReason] = React.useState("");
+
+    if (!user) return null;
+
+    return (
+        <Dialog open={!!user} onOpenChange={(isOpen) => !isOpen && onCancel()}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Deactivate Dealer Account</DialogTitle>
+                    <DialogDescription>
+                        You are about to deactivate the account for <span className="font-semibold text-foreground">{user.dealershipName}</span>. Please provide a reason for this action.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-2">
+                    <Label htmlFor="deactivationReason">Reason for Deactivation</Label>
+                    <Textarea 
+                        id="deactivationReason"
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        placeholder="e.g., Violation of terms, repeated customer complaints, etc."
+                    />
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={onCancel}>Cancel</Button>
+                    <Button variant="destructive" onClick={() => onConfirm(reason)} disabled={!reason.trim()}>Confirm Deactivation</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+
+const UsersContent = ({ users, isLoading, onUpdateStatus, onDeleteUser }: { users: Dealer[], isLoading: boolean, onUpdateStatus: (id: string, status: Dealer['status'], reason?: string) => void, onDeleteUser: (id: string) => void }) => {
     const [searchTerm, setSearchTerm] = React.useState("");
     const [userToDelete, setUserToDelete] = React.useState<Dealer | null>(null);
+    const [userToDeactivate, setUserToDeactivate] = React.useState<Dealer | null>(null);
 
-    const filteredUsers = users.filter(user => 
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.dealershipName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        user.status.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
+    const filteredUsers = (status: Dealer['status']) => {
+        return users.filter(user => 
+            user.status === status &&
+            (
+                user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                user.dealershipName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
+            )
+        );
+    }
+    
     const handleConfirmDelete = async () => {
         if (userToDelete) {
             await onDeleteUser(userToDelete.id);
             setUserToDelete(null);
+        }
+    }
+
+    const handleConfirmDeactivation = async (reason: string) => {
+        if (userToDeactivate) {
+            await onUpdateStatus(userToDeactivate.id, 'deactivated', reason);
+            setUserToDeactivate(null);
         }
     }
     
@@ -277,6 +326,93 @@ const UsersContent = ({ users, isLoading, onUpdateStatus, onDeleteUser }: { user
         return null;
     }
 
+    const UserTable = ({ users }: { users: Dealer[] }) => (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Dealership</TableHead>
+                    <TableHead>Category</TableHead>
+                    {users[0]?.status === 'deactivated' && <TableHead>Reason</TableHead>}
+                    <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {isLoading ? (
+                    <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                            Loading users...
+                        </TableCell>
+                    </TableRow>
+                ) : users.length === 0 ? (
+                     <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
+                            No users found in this category.
+                        </TableCell>
+                    </TableRow>
+                ) : users.map(user => {
+                    const isSystemAdmin = user.id === 'admin-user';
+                    return (
+                        <TableRow key={user.id}>
+                            <TableCell>
+                                <div className="font-medium text-foreground">{user.name}</div>
+                                <div className="text-sm text-muted-foreground">{user.email}</div>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">{user.dealershipName}</TableCell>
+                            <TableCell>
+                                <div className="flex items-center gap-2">
+                                    <VehicleCategoryIcon category={user.vehicleCategory} />
+                                    <span className="text-muted-foreground text-xs">{user.vehicleCategory}</span>
+                                </div>
+                            </TableCell>
+                            {user.status === 'deactivated' && (
+                                <TableCell>
+                                    <p className="text-xs text-muted-foreground max-w-xs truncate">{user.deactivationReason || 'N/A'}</p>
+                                </TableCell>
+                            )}
+                            <TableCell className="text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild disabled={isSystemAdmin}>
+                                        <Button variant="ghost" size="icon" disabled={isSystemAdmin}>
+                                            <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                        <DropdownMenuItem asChild>
+                                           <Link href={`/admin/users/${user.id}`}>
+                                                <Eye className="mr-2 h-4 w-4" /> View Profile
+                                           </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        {user.status !== 'approved' && (
+                                            <DropdownMenuItem onClick={() => onUpdateStatus(user.id, 'approved')}>
+                                                <CheckCircle className="mr-2 h-4 w-4" /> Approve
+                                            </DropdownMenuItem>
+                                        )}
+                                        {user.status !== 'deactivated' && (
+                                            <DropdownMenuItem onClick={() => setUserToDeactivate(user)}>
+                                                <XCircle className="mr-2 h-4 w-4" /> Deactivate
+                                            </DropdownMenuItem>
+                                        )}
+                                         {user.status === 'deactivated' && (
+                                            <DropdownMenuItem onClick={() => onUpdateStatus(user.id, 'approved')}>
+                                                <Clock className="mr-2 h-4 w-4" /> Re-Activate (Approve)
+                                            </DropdownMenuItem>
+                                        )}
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => setUserToDelete(user)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                            <Trash2 className="mr-2 h-4 w-4" /> Delete User
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                    )
+                })}
+            </TableBody>
+        </Table>
+    );
 
     return (
         <>
@@ -284,98 +420,35 @@ const UsersContent = ({ users, isLoading, onUpdateStatus, onDeleteUser }: { user
             <CardHeader>
                 <CardTitle>User Management</CardTitle>
                 <CardDescription>Approve, deactivate, and manage all dealer accounts.</CardDescription>
-                <div className="relative mt-4">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Search by name, dealership, or status..."
-                        className="pl-8"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Dealership</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead className="text-center">Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center text-muted-foreground">
-                                    Loading users...
-                                </TableCell>
-                            </TableRow>
-                        ) : filteredUsers.map(user => {
-                            const { variant, icon: Icon, label, color } = statusConfig[user.status];
-                            const isSystemAdmin = user.id === 'admin-user';
-                            return (
-                                <TableRow key={user.id}>
-                                    <TableCell>
-                                        <div className="font-medium text-foreground">{user.name}</div>
-                                        <div className="text-sm text-muted-foreground">{user.email}</div>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">{user.dealershipName}</TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <VehicleCategoryIcon category={user.vehicleCategory} />
-                                            <span className="text-muted-foreground text-xs">{user.vehicleCategory}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <Badge variant={variant} className={`gap-1.5`}>
-                                            <Icon className={`h-3.5 w-3.5 ${color}`} />
-                                            {label}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild disabled={isSystemAdmin}>
-                                                <Button variant="ghost" size="icon" disabled={isSystemAdmin}>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent>
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem asChild>
-                                                   <Link href={`/admin/users/${user.id}`}>
-                                                        <Eye className="mr-2 h-4 w-4" /> View Profile
-                                                   </Link>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                {user.status !== 'approved' && (
-                                                    <DropdownMenuItem onClick={() => onUpdateStatus(user.id, 'approved')}>
-                                                        <CheckCircle className="mr-2 h-4 w-4" /> Approve
-                                                    </DropdownMenuItem>
-                                                )}
-                                                {user.status !== 'deactivated' && (
-                                                    <DropdownMenuItem onClick={() => onUpdateStatus(user.id, 'deactivated')}>
-                                                        <XCircle className="mr-2 h-4 w-4" /> Deactivate
-                                                    </DropdownMenuItem>
-                                                )}
-                                                 {user.status === 'deactivated' && (
-                                                    <DropdownMenuItem onClick={() => onUpdateStatus(user.id, 'pending')}>
-                                                        <Clock className="mr-2 h-4 w-4" /> Re-Activate
-                                                    </DropdownMenuItem>
-                                                )}
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem onClick={() => setUserToDelete(user)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete User
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            )
-                        })}
-                    </TableBody>
-                </Table>
+                <Tabs defaultValue="pending">
+                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <TabsList>
+                            <TabsTrigger value="pending">New for Approval</TabsTrigger>
+                            <TabsTrigger value="approved">Approved Users</TabsTrigger>
+                            <TabsTrigger value="deactivated">Deactivated Users</TabsTrigger>
+                        </TabsList>
+                        <div className="relative w-full md:w-auto md:max-w-xs">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search by name or dealership..."
+                                className="pl-8"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <TabsContent value="pending" className="mt-4">
+                        <UserTable users={filteredUsers('pending')} />
+                    </TabsContent>
+                     <TabsContent value="approved" className="mt-4">
+                        <UserTable users={filteredUsers('approved')} />
+                    </TabsContent>
+                     <TabsContent value="deactivated" className="mt-4">
+                        <UserTable users={filteredUsers('deactivated')} />
+                    </TabsContent>
+                </Tabs>
             </CardContent>
         </Card>
 
@@ -399,6 +472,13 @@ const UsersContent = ({ users, isLoading, onUpdateStatus, onDeleteUser }: { user
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+
+        {/* Deactivation Dialog */}
+        <DeactivationDialog
+            user={userToDeactivate}
+            onConfirm={handleConfirmDeactivation}
+            onCancel={() => setUserToDeactivate(null)}
+        />
         </>
     )
 }
@@ -427,8 +507,8 @@ export function AdminDashboard({ platformStats }: { platformStats?: any }) {
     }, [loadDealers]);
     
 
-    const handleUpdateStatus = async (userId: string, status: Dealer['status']) => {
-        const result = await updateDealerStatusAction(userId, status);
+    const handleUpdateStatus = async (userId: string, status: Dealer['status'], reason?: string) => {
+        const result = await updateDealerStatusAction(userId, status, reason);
         if (result.success) {
             loadDealers(); // Refresh the list from DB
             toast({
@@ -474,6 +554,3 @@ export function AdminDashboard({ platformStats }: { platformStats?: any }) {
     return <DashboardContent dealers={userList} platformStats={platformStats} />
 }
 
-
-
-    
