@@ -12,10 +12,10 @@ export default async function DashboardPage({ params }: { params: { dealerId: st
   ]);
 
   const stockOverviewChartData = [
-    { name: 'For Sale', value: stockOverviewData['For Sale'], fill: 'hsl(var(--chart-1))' },
-    { name: 'Sold', value: stockOverviewData['Sold'], fill: 'hsl(var(--chart-2))' },
-    { name: 'In Refurbishment', value: stockOverviewData['In Refurbishment'], fill: 'hsl(var(--chart-3))' },
-    { name: 'Draft', value: stockOverviewData['Draft'], fill: 'hsl(var(--chart-4))' },
+    { name: 'For Sale', value: stockOverviewData['For Sale'].count, vehicles: stockOverviewData['For Sale'].vehicles, fill: 'hsl(var(--chart-1))' },
+    { name: 'Sold', value: stockOverviewData['Sold'].count, vehicles: stockOverviewData['Sold'].vehicles, fill: 'hsl(var(--chart-2))' },
+    { name: 'In Refurbishment', value: stockOverviewData['In Refurbishment'].count, vehicles: stockOverviewData['In Refurbishment'].vehicles, fill: 'hsl(var(--chart-3))' },
+    { name: 'Draft', value: stockOverviewData['Draft'].count, vehicles: stockOverviewData['Draft'].vehicles, fill: 'hsl(var(--chart-4))' },
   ];
 
   return (

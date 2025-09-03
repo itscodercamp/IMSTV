@@ -19,6 +19,7 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart"
 import { Skeleton } from "../ui/skeleton"
+import { Separator } from "../ui/separator"
 
 const chartConfig = {
   vehicles: {
@@ -42,13 +43,52 @@ const chartConfig = {
   },
 }
 
-interface StockOverviewChartProps {
-  stockData: {
+interface VehicleInfo {
     name: string;
-    value: number;
-    fill: string;
-  }[];
+    reg: string;
+    price: number;
 }
+
+interface StockDataPoint {
+  name: string;
+  value: number;
+  fill: string;
+  vehicles: VehicleInfo[];
+}
+
+interface StockOverviewChartProps {
+  stockData: StockDataPoint[];
+}
+
+const CustomTooltipContent = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data: StockDataPoint = payload[0].payload;
+    return (
+      <div className="p-4 bg-background/90 border rounded-lg shadow-xl max-w-sm text-sm">
+        <p className="font-bold text-base mb-2">{data.name} ({data.value})</p>
+        <Separator />
+        {data.vehicles.length > 0 ? (
+           <ul className="mt-2 space-y-2">
+            {data.vehicles.map((vehicle, index) => (
+              <li key={index} className="flex justify-between items-center gap-4">
+                <div className="flex-1 truncate">
+                  <p className="font-medium text-foreground truncate">{vehicle.name}</p>
+                  <p className="text-xs text-muted-foreground">{vehicle.reg}</p>
+                </div>
+                <p className="font-semibold text-primary whitespace-nowrap">₹{vehicle.price?.toLocaleString('en-IN')}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground mt-2">No vehicles in this category.</p>
+        )}
+      </div>
+    );
+  }
+
+  return null;
+};
+
 
 export function StockOverviewChart({ stockData }: StockOverviewChartProps) {
   const totalVehicles = React.useMemo(() => {
@@ -75,7 +115,7 @@ export function StockOverviewChart({ stockData }: StockOverviewChartProps) {
             <PieChart>
               <ChartTooltip
                 cursor={false}
-                content={<ChartTooltipContent hideLabel />}
+                content={<CustomTooltipContent />}
               />
               <Pie
                 data={stockData}

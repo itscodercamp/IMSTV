@@ -1,4 +1,6 @@
 
+'use server';
+
 import 'dotenv/config';
 import { open } from 'sqlite';
 import sqlite3 from 'sqlite3';
@@ -148,6 +150,7 @@ async function initializeDatabase(dbInstance: Database) {
         dealerId TEXT NOT NULL,
         otherVehicleName TEXT,
         otherVehicleReg TEXT,
+        isArchived INTEGER DEFAULT 0,
         FOREIGN KEY (dealerId) REFERENCES dealers (id) ON DELETE CASCADE,
         FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL,
         FOREIGN KEY (assignedTo) REFERENCES employees (id) ON DELETE SET NULL
@@ -372,7 +375,7 @@ export async function getDashboardData(dealerId: string) {
          db.get('SELECT COUNT(*) as count FROM vehicles WHERE dealerId = ? AND status != ?', dealerId, 'Sold'),
          db.get('SELECT COUNT(*) as count FROM vehicles WHERE dealerId = ? AND status = ?', dealerId, 'For Sale'),
          db.get('SELECT SUM(sellingPrice - cost - refurbishmentCost) as total FROM vehicles WHERE dealerId = ? AND status = ?', dealerId, 'Sold'),
-         db.get('SELECT COUNT(*) as count FROM leads WHERE dealerId = ? AND conversionStatus = ?', dealerId, 'In Progress'),
+         db.get('SELECT COUNT(*) as count FROM leads WHERE dealerId = ? AND conversionStatus = ? AND isArchived = 0', dealerId, 'In Progress'),
          db.get('SELECT SUM(refurbishmentCost) as total FROM vehicles WHERE dealerId = ?', dealerId),
          db.get('SELECT COUNT(*) as count FROM vehicles WHERE dealerId = ? AND status = ?', dealerId, 'Sold'),
     ]);
@@ -512,18 +515,18 @@ export async function getAllLeads(dealerId: string): Promise<(Lead & { vehicleMa
         FROM leads l
         LEFT JOIN vehicles v ON l.vehicleId = v.id
         LEFT JOIN employees e ON l.assignedTo = e.id
-        WHERE l.dealerId = ?
+        WHERE l.dealerId = ? AND l.isArchived = 0
         ORDER BY l.dateAdded DESC
     `, dealerId);
     return results as (Lead & { vehicleMake?: string, vehicleModel?: string, employeeName?: string })[];
 }
 
-export async function addLead(lead: Omit<Lead, 'id'>): Promise<{ success: boolean, error?: string }> {
+export async function addLead(lead: Omit<Lead, 'id' | 'isArchived'>): Promise<{ success: boolean, error?: string }> {
     const db = await getDB();
     try {
         await db.run(
-            `INSERT INTO leads (id, name, phone, email, vehicleId, assignedTo, testDriveStatus, conversionStatus, dateAdded, dealerId, otherVehicleName, otherVehicleReg)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO leads (id, name, phone, email, vehicleId, assignedTo, testDriveStatus, conversionStatus, dateAdded, dealerId, otherVehicleName, otherVehicleReg, isArchived)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
             crypto.randomUUID(), lead.name, lead.phone, lead.email, lead.vehicleId, lead.assignedTo, lead.testDriveStatus, lead.conversionStatus, lead.dateAdded || new Date().toISOString(), lead.dealerId, lead.otherVehicleName, lead.otherVehicleReg
         );
         return { success: true };
@@ -539,7 +542,7 @@ export async function getLeadsByEmployeeId(employeeId: string): Promise<Lead[]> 
         SELECT l.*, v.make as "vehicleMake", v.model as "vehicleModel"
         FROM leads l
         LEFT JOIN vehicles v ON l.vehicleId = v.id
-        WHERE l.assignedTo = ?
+        WHERE l.assignedTo = ? AND l.isArchived = 0
         ORDER BY l.dateAdded DESC
     `, employeeId);
     return results as Lead[];
@@ -689,29 +692,40 @@ export async function updateVehicleDb(vehicleId: string, data: Partial<Vehicle &
     }
 }
 
+export async function archiveLeadsForVehicle(vehicleId: string): Promise<{ success: boolean; error?: string }> {
+    const db = await getDB();
+    try {
+        await db.run('UPDATE leads SET isArchived = 1 WHERE vehicleId = ?', vehicleId);
+        return { success: true };
+    } catch (error: any) {
+        console.error('Error archiving leads:', error);
+        return { success: false, error: 'Failed to archive leads due to a database error.' };
+    }
+}
 
 
 export async function getStockOverview(dealerId: string) {
     const db = await getDB();
-    const results = await db.all(`
-        SELECT status, COUNT(*) as count 
-        FROM vehicles 
-        WHERE dealerId = ? 
-        GROUP BY status
-    `, dealerId);
-    
-    const overview = {
-        'For Sale': 0,
-        'Sold': 0,
-        'In Refurbishment': 0,
-        'Draft': 0,
-    };
-    
-    results.forEach(row => {
-        if (row.status in overview) {
-            overview[row.status as keyof typeof overview] = row.count;
-        }
-    });
+    const statuses: Vehicle['status'][] = ['For Sale', 'Sold', 'In Refurbishment', 'Draft'];
+    const overview: any = {};
+
+    for (const status of statuses) {
+        const result = await db.all(`
+            SELECT id, make, model, registrationNumber, price, sellingPrice
+            FROM vehicles 
+            WHERE dealerId = ? AND status = ?
+            ORDER BY dateAdded DESC
+        `, dealerId, status);
+
+        overview[status] = {
+            count: result.length,
+            vehicles: result.slice(0, 5).map(v => ({ // Limit to 5 for tooltip
+                name: `${v.make} ${v.model}`,
+                reg: v.registrationNumber,
+                price: v.status === 'Sold' ? v.sellingPrice : v.price,
+            })),
+        };
+    }
 
     return overview;
 }
@@ -822,7 +836,7 @@ export async function updateDealerStatusAction(id: string, status: Dealer['statu
 export async function updateWebsiteStatusAction(dealerId: string, status: WebsiteContent['websiteStatus']): Promise<{ success: boolean; error?: string }> {
     const db = await getDB();
     try {
-        await upsertWebsiteContent(dealerId, { websiteStatus: status });
+        await upsertWebsiteContent(dealerId, { websiteStatus: status, isLive: status === 'approved' ? true : false });
         return { success: true };
     } catch (error) {
         console.error("Failed to update website status:", error);
