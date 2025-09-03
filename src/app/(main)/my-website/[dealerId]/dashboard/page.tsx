@@ -100,7 +100,7 @@ const LiveStatusControl = ({ websiteContent, dealerId, reload }: { websiteConten
         return (
              <div className="flex items-center space-x-2">
                 <Switch id="live-status" checked={isLive} onCheckedChange={handleToggleLive} disabled={isLoading}/>
-                <Label htmlFor="live-status" className="font-medium">Go Live</Label>
+                <Label htmlFor="live-status" className="font-medium text-sm">{isLive ? 'Website is Live' : 'Website is Offline'}</Label>
             </div>
         )
     }
@@ -116,7 +116,13 @@ const LiveStatusControl = ({ websiteContent, dealerId, reload }: { websiteConten
 
     if (websiteStatus === 'rejected') {
         return (
-            <Badge variant="destructive" className="gap-2 text-base px-4 py-2">Website Rejected</Badge>
+            <div className="flex flex-col items-center gap-2">
+                 <Badge variant="destructive" className="gap-2 text-base px-4 py-2">Website Rejected</Badge>
+                 <Button onClick={handleRequestLive} disabled={isLoading} size="sm">
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                    Re-apply for Approval
+                 </Button>
+            </div>
         )
     }
     

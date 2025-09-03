@@ -132,6 +132,14 @@ export function InventoryTable({ initialVehicles, dealerId }: { initialVehicles:
         return 'default';
     }
   };
+  
+  const vehicleCounts = React.useMemo(() => {
+    const available = vehicles.filter(v => v.status === 'For Sale' || v.status === 'Draft').length;
+    const processing = vehicles.filter(v => v.status === 'In Refurbishment').length;
+    const sold = vehicles.filter(v => v.status === 'Sold').length;
+    return { available, processing, sold };
+  }, [vehicles]);
+
 
   const filteredVehicles = React.useMemo(() => {
     let list = vehicles;
@@ -183,9 +191,9 @@ export function InventoryTable({ initialVehicles, dealerId }: { initialVehicles:
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <TabsList>
-                <TabsTrigger value="available">Available for Sale</TabsTrigger>
-                <TabsTrigger value="processing">Processing</TabsTrigger>
-                <TabsTrigger value="sold">Sold</TabsTrigger>
+                <TabsTrigger value="available">Available for Sale ({vehicleCounts.available})</TabsTrigger>
+                <TabsTrigger value="processing">Processing ({vehicleCounts.processing})</TabsTrigger>
+                <TabsTrigger value="sold">Sold ({vehicleCounts.sold})</TabsTrigger>
               </TabsList>
               <div className="relative w-full md:w-auto md:max-w-xs">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
