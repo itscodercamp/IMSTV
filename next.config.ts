@@ -31,7 +31,23 @@ const nextConfig: NextConfig = {
         config.externals.push('sqlite3');
     }
     return config;
-  }
+  },
+  experimental: {
+    turbo: {
+      rules: {
+        // This is the recommended way to make sqlite3 work with Turbopack.
+        // It will be excluded from the client build.
+        '*.node': {
+          loaders: ['node-loader'],
+          as: '*.node',
+        },
+        '**/*.db': {
+          loaders: ['file-loader'],
+          as: '*.db',
+        },
+      },
+    },
+  },
 };
 
 export default nextConfig;
