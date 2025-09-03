@@ -66,7 +66,7 @@ export default function AdminLayout({
   
   const isLoginPage = pathname === '/admin/login_admin';
   const isAuthenticated = typeof window !== 'undefined' && localStorage.getItem("admin_authenticated") === "true";
-  const isInventoryPage = pathname.startsWith('/inventory');
+  const isInventoryPage = pathname.startsWith('/admin/inventory');
 
   if (!isAuthenticated && !isLoginPage) {
     return null; 
