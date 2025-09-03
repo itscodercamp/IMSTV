@@ -96,12 +96,42 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
   const [isPreviewOpen, setIsPreviewOpen] = React.useState(false);
   const [previewStartIndex, setPreviewStartIndex] = React.useState(0);
   const [imageList, setImageList] = React.useState<{ src?: string, alt: string, hint: string }[]>([]);
-  const [isAdmin, setIsAdmin] = React.useState(false);
+  const [userRole, setUserRole] = React.useState<'admin' | 'dealer' | 'employee' | null>(null);
 
   React.useEffect(() => {
     const adminAuth = localStorage.getItem("admin_authenticated") === "true";
-    setIsAdmin(adminAuth);
+    const dealerAuth = localStorage.getItem("user_authenticated") === "true";
+    const employeeAuth = localStorage.getItem("employee_authenticated") === "true";
+    
+    if(adminAuth) setUserRole('admin');
+    else if(dealerAuth) setUserRole('dealer');
+    else if(employeeAuth) setUserRole('employee');
+
   }, []);
+
+  const handleShare = () => {
+    let message = `*Check out this vehicle:*\n\n`;
+    message += `*Vehicle:* ${vehicle.make} ${vehicle.model} ${vehicle.variant} (${vehicle.year})\n`;
+    message += `*Price:* ₹${vehicle.price.toLocaleString('en-IN')}\n`;
+    message += `*Kms Driven:* ${vehicle.odometerReading?.toLocaleString()} km\n`;
+    message += `*Fuel Type:* ${vehicle.fuelType}\n`;
+    message += `*Transmission:* ${vehicle.transmission}\n`;
+    message += `*Ownership:* ${vehicle.ownershipType}\n`;
+    message += `*Registration:* ${vehicle.registrationNumber}\n\n`;
+
+    if (userRole !== 'employee') {
+        message += `_More details available._\n`;
+    }
+
+    const dealerInfoRaw = localStorage.getItem('dealer_info');
+    if(dealerInfoRaw) {
+        const dealerInfo = JSON.parse(dealerInfoRaw);
+        message += `*From:* ${dealerInfo.dealershipName}`;
+    }
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  }
 
   const getStatusVariant = (status: typeof vehicle.status) => {
     switch (status) {
@@ -170,15 +200,37 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
     setIsPreviewOpen(true);
   }
 
-  const backLink = isAdmin ? `/admin/users/${dealerId}` : `/inventory/${dealerId}`;
+  const getBackLink = () => {
+    switch (userRole) {
+      case 'admin':
+        return `/admin/users/${dealerId}`;
+      case 'employee':
+        return '/employee-dashboard';
+      case 'dealer':
+      default:
+        return `/dashboard/${dealerId}/inventory`;
+    }
+  };
+
+  const getBackLabel = () => {
+    switch (userRole) {
+      case 'admin':
+        return "Dealer Profile";
+      case 'employee':
+        return "Dashboard";
+      case 'dealer':
+      default:
+        return "Inventory";
+    }
+  };
 
   return (
     <div className="space-y-6">
        <div>
         <Button asChild variant="outline" size="sm" className="gap-2">
-            <Link href={backLink}>
+            <Link href={getBackLink()}>
                 <ArrowLeft className="h-4 w-4" />
-                Back to {isAdmin ? "Dealer Profile" : "Inventory"}
+                Back to {getBackLabel()}
             </Link>
         </Button>
        </div>
@@ -196,7 +248,7 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
           </div>
         </CardHeader>
         <CardContent>
-            <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-3', 'item-4', 'item-5', 'item-6']} className="w-full">
+            <Accordion type="multiple" defaultValue={['item-1', 'item-3', 'item-4']} className="w-full">
               
               <AccordionItem value="item-1">
                 <AccordionTrigger className="text-lg font-semibold">
@@ -219,23 +271,25 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
                 </AccordionContent>
               </AccordionItem>
 
-              <AccordionItem value="item-2">
-                <AccordionTrigger className="text-lg font-semibold">
-                    <div className="flex items-center gap-2"><UserCircle className="h-5 w-5"/>Seller & Buying Details</div>
-                </AccordionTrigger>
-                <AccordionContent className="space-y-4 pt-4">
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        <DetailRow icon={UserCircle} label="Seller Name" value={vehicle.sellerName} />
-                        <DetailRow icon={Phone} label="Seller Phone" value={vehicle.sellerPhone} />
-                        <DetailRow icon={Calendar} label="Buying Date" value={vehicle.buyingDate ? format(new Date(vehicle.buyingDate), "PPP") : 'N/A'} />
-                        <DetailRow icon={Banknote} label="Buying Price" value={`₹${vehicle.buyingPrice?.toLocaleString('en-IN')}`} />
-                        <DetailRow icon={Banknote} label="Loan Status" value={vehicle.loanStatus} />
-                         {vehicle.loanStatus === 'Open Loan' && <DetailRow icon={IndianRupee} label="Foreclosure Amount" value={`₹${vehicle.foreclosureAmount?.toLocaleString('en-IN')}`} />}
-                        <DetailRow icon={IndianRupee} label="Amount Paid to Seller" value={`₹${vehicle.amountPaidToSeller?.toLocaleString('en-IN')}`} />
-                        <DetailRow icon={FileUp} label="Payment Method" value={vehicle.sellerPaymentMethod} />
-                    </div>
-                </AccordionContent>
-              </AccordionItem>
+              {userRole !== 'employee' && (
+                <AccordionItem value="item-2">
+                  <AccordionTrigger className="text-lg font-semibold">
+                      <div className="flex items-center gap-2"><UserCircle className="h-5 w-5"/>Seller & Buying Details</div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                          <DetailRow icon={UserCircle} label="Seller Name" value={vehicle.sellerName} />
+                          <DetailRow icon={Phone} label="Seller Phone" value={vehicle.sellerPhone} />
+                          <DetailRow icon={Calendar} label="Buying Date" value={vehicle.buyingDate ? format(new Date(vehicle.buyingDate), "PPP") : 'N/A'} />
+                          <DetailRow icon={Banknote} label="Buying Price" value={`₹${vehicle.buyingPrice?.toLocaleString('en-IN')}`} />
+                          <DetailRow icon={Banknote} label="Loan Status" value={vehicle.loanStatus} />
+                           {vehicle.loanStatus === 'Open Loan' && <DetailRow icon={IndianRupee} label="Foreclosure Amount" value={`₹${vehicle.foreclosureAmount?.toLocaleString('en-IN')}`} />}
+                          <DetailRow icon={IndianRupee} label="Amount Paid to Seller" value={`₹${vehicle.amountPaidToSeller?.toLocaleString('en-IN')}`} />
+                          <DetailRow icon={FileUp} label="Payment Method" value={vehicle.sellerPaymentMethod} />
+                      </div>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
               
               <AccordionItem value="item-3">
                 <AccordionTrigger className="text-lg font-semibold">
@@ -280,41 +334,49 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
                 </AccordionContent>
               </AccordionItem>
 
-              <AccordionItem value="item-5">
-                <AccordionTrigger className="text-lg font-semibold">
-                  <div className="flex items-center gap-2"><FileText className="h-5 w-5"/>Documents</div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    {documentImages.map((image, index) => (
-                        <ImageCard key={`doc-${index}`} src={image.src} alt={image.alt} hint={image.hint} onClick={() => openPreview(documentImages, index)} />
-                    ))}
-                </AccordionContent>
-              </AccordionItem>
+              {userRole !== 'employee' && (
+                <AccordionItem value="item-5">
+                  <AccordionTrigger className="text-lg font-semibold">
+                    <div className="flex items-center gap-2"><FileText className="h-5 w-5"/>Documents</div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                      {documentImages.map((image, index) => (
+                          <ImageCard key={`doc-${index}`} src={image.src} alt={image.alt} hint={image.hint} onClick={() => openPreview(documentImages, index)} />
+                      ))}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
 
 
-              <AccordionItem value="item-6">
-                <AccordionTrigger className="text-lg font-semibold">
-                    <div className="flex items-center gap-2"><IndianRupee className="h-5 w-5"/>Dealer Financials</div>
-                </AccordionTrigger>
-                <AccordionContent className="space-y-6 pt-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        <DetailRow label="Purchase Price" value={`₹${vehicle.cost.toLocaleString('en-IN')}`} />
-                        <DetailRow label="Refurbishment Cost" value={`₹${vehicle.refurbishmentCost.toLocaleString('en-IN')}`} />
-                        <DetailRow label="Total Cost" value={`₹${(vehicle.cost + vehicle.refurbishmentCost).toLocaleString('en-IN')}`} />
-                        <DetailRow label="Potential Profit" value={<span className="text-green-500">₹{(vehicle.price - vehicle.cost - vehicle.refurbishmentCost).toLocaleString('en-IN')}</span>} />
-                    </div>
-                </AccordionContent>
-              </AccordionItem>
+              {userRole !== 'employee' && (
+                <AccordionItem value="item-6">
+                  <AccordionTrigger className="text-lg font-semibold">
+                      <div className="flex items-center gap-2"><IndianRupee className="h-5 w-5"/>Dealer Financials</div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-6 pt-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                          <DetailRow label="Purchase Price" value={`₹${vehicle.cost.toLocaleString('en-IN')}`} />
+                          <DetailRow label="Refurbishment Cost" value={`₹${vehicle.refurbishmentCost.toLocaleString('en-IN')}`} />
+                          <DetailRow label="Total Cost" value={`₹${(vehicle.cost + vehicle.refurbishmentCost).toLocaleString('en-IN')}`} />
+                          <DetailRow label="Potential Profit" value={<span className="text-green-500">₹{(vehicle.price - vehicle.cost - vehicle.refurbishmentCost).toLocaleString('en-IN')}</span>} />
+                      </div>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
             </Accordion>
         </CardContent>
         <CardFooter className="flex-col sm:flex-row justify-end gap-2 p-4 mt-4 border-t">
-            <Button variant="outline"><Share2 className="mr-2 h-4 w-4"/>Share</Button>
-            <Button variant="outline"><Wrench className="mr-2 h-4 w-4"/>Update Status</Button>
-             <Button asChild>
-                <Link href={`/inventory/${dealerId}/edit/${vehicle.id}`}>
-                    <Edit className="mr-2 h-4 w-4"/>Edit Information
-                </Link>
-            </Button>
+            <Button variant="outline" onClick={handleShare}><Share2 className="mr-2 h-4 w-4"/>Share</Button>
+            {userRole !== 'employee' && (
+              <>
+                <Button variant="outline"><Wrench className="mr-2 h-4 w-4"/>Update Status</Button>
+                <Button asChild>
+                    <Link href={`/dashboard/${dealerId}/inventory/edit/${vehicle.id}`}>
+                        <Edit className="mr-2 h-4 w-4"/>Edit Information
+                    </Link>
+                </Button>
+              </>
+            )}
         </CardFooter>
       </Card>
 

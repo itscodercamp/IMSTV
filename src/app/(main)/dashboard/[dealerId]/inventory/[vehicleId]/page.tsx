@@ -96,14 +96,17 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
   const [isPreviewOpen, setIsPreviewOpen] = React.useState(false);
   const [previewStartIndex, setPreviewStartIndex] = React.useState(0);
   const [imageList, setImageList] = React.useState<{ src?: string, alt: string, hint: string }[]>([]);
-  const [isAdmin, setIsAdmin] = React.useState(false);
-  const [isEmployee, setIsEmployee] = React.useState(false);
+  const [userRole, setUserRole] = React.useState<'admin' | 'dealer' | 'employee' | null>(null);
 
   React.useEffect(() => {
     const adminAuth = localStorage.getItem("admin_authenticated") === "true";
-    setIsAdmin(adminAuth);
+    const dealerAuth = localStorage.getItem("user_authenticated") === "true";
     const employeeAuth = localStorage.getItem("employee_authenticated") === "true";
-    setIsEmployee(employeeAuth);
+    
+    if(adminAuth) setUserRole('admin');
+    else if(dealerAuth) setUserRole('dealer');
+    else if(employeeAuth) setUserRole('employee');
+
   }, []);
 
   const handleShare = () => {
@@ -116,7 +119,7 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
     message += `*Ownership:* ${vehicle.ownershipType}\n`;
     message += `*Registration:* ${vehicle.registrationNumber}\n\n`;
 
-    if (!isEmployee) {
+    if (userRole !== 'employee') {
         message += `_More details available._\n`;
     }
 
@@ -197,16 +200,37 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
     setIsPreviewOpen(true);
   }
 
-  const backLink = isAdmin ? `/admin/users/${dealerId}` : isEmployee ? '/employee-dashboard' : `/dashboard/${dealerId}/inventory`;
-  const backLabel = isAdmin ? "Dealer Profile" : isEmployee ? "Dashboard" : "Inventory";
+  const getBackLink = () => {
+    switch (userRole) {
+      case 'admin':
+        return `/admin/users/${dealerId}`;
+      case 'employee':
+        return '/employee-dashboard';
+      case 'dealer':
+      default:
+        return `/dashboard/${dealerId}/inventory`;
+    }
+  };
+
+  const getBackLabel = () => {
+    switch (userRole) {
+      case 'admin':
+        return "Dealer Profile";
+      case 'employee':
+        return "Dashboard";
+      case 'dealer':
+      default:
+        return "Inventory";
+    }
+  };
 
   return (
     <div className="space-y-6">
        <div>
         <Button asChild variant="outline" size="sm" className="gap-2">
-            <Link href={backLink}>
+            <Link href={getBackLink()}>
                 <ArrowLeft className="h-4 w-4" />
-                Back to {backLabel}
+                Back to {getBackLabel()}
             </Link>
         </Button>
        </div>
@@ -224,7 +248,7 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
           </div>
         </CardHeader>
         <CardContent>
-            <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-3', 'item-4', 'item-5', 'item-6']} className="w-full">
+            <Accordion type="multiple" defaultValue={['item-1', 'item-3', 'item-4']} className="w-full">
               
               <AccordionItem value="item-1">
                 <AccordionTrigger className="text-lg font-semibold">
@@ -247,7 +271,7 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
                 </AccordionContent>
               </AccordionItem>
 
-              {!isEmployee && (
+              {userRole !== 'employee' && (
                 <AccordionItem value="item-2">
                   <AccordionTrigger className="text-lg font-semibold">
                       <div className="flex items-center gap-2"><UserCircle className="h-5 w-5"/>Seller & Buying Details</div>
@@ -310,7 +334,7 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
                 </AccordionContent>
               </AccordionItem>
 
-              {!isEmployee && (
+              {userRole !== 'employee' && (
                 <AccordionItem value="item-5">
                   <AccordionTrigger className="text-lg font-semibold">
                     <div className="flex items-center gap-2"><FileText className="h-5 w-5"/>Documents</div>
@@ -324,7 +348,7 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
               )}
 
 
-              {!isEmployee && (
+              {userRole !== 'employee' && (
                 <AccordionItem value="item-6">
                   <AccordionTrigger className="text-lg font-semibold">
                       <div className="flex items-center gap-2"><IndianRupee className="h-5 w-5"/>Dealer Financials</div>
@@ -343,7 +367,7 @@ function VehicleDetailClientPage({ vehicle, dealerId }: { vehicle: Vehicle, deal
         </CardContent>
         <CardFooter className="flex-col sm:flex-row justify-end gap-2 p-4 mt-4 border-t">
             <Button variant="outline" onClick={handleShare}><Share2 className="mr-2 h-4 w-4"/>Share</Button>
-            {!isEmployee && (
+            {userRole !== 'employee' && (
               <>
                 <Button variant="outline"><Wrench className="mr-2 h-4 w-4"/>Update Status</Button>
                 <Button asChild>
