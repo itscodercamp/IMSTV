@@ -1,4 +1,5 @@
 
+
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { fetchPlatformWideStats } from "../../actions";
 
@@ -8,3 +9,4 @@ export default async function AdminUsersPage() {
         <AdminDashboard platformStats={platformStats}/>
     )
 }
+

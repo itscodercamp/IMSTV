@@ -1,8 +1,9 @@
 
+
 "use client";
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { User, UserCheck, UserX, Search, MoreHorizontal, CheckCircle, XCircle, Ban, Clock, Trash2, AlertTriangle, Eye, Car, Bike, Package, Users as UsersIcon, BadgeCheck, ShoppingCart, Globe, BarChart, AreaChart, Map, Target, Crown, IndianRupee, Mail, Phone, ExternalLink } from "lucide-react";
+import { User, UserCheck, UserX, Search, MoreHorizontal, CheckCircle, XCircle, Ban, Clock, Trash2, AlertTriangle, Eye, Car, Bike, Package, Users as UsersIcon, BadgeCheck, ShoppingCart, Globe, BarChart, AreaChart, Map, Target, Crown, IndianRupee, Mail, Phone, ExternalLink, Building2 } from "lucide-react";
 import type { Dealer } from "@/lib/types";
 import { Input } from "../ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "../ui/dropdown-menu";
@@ -10,26 +11,57 @@ import { Button } from "../ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Badge } from "../ui/badge";
 import { fetchDealers, updateDealerStatusAction, deleteDealerAction } from "@/app/(admin)/actions";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
 import Link from 'next/link';
 import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+
+const TooltipList = ({ items }: { items: { name: string, dealershipName: string }[] }) => {
+    if (!items || items.length === 0) return <p>No dealers in this category.</p>;
+
+    return (
+        <div className="space-y-1 max-h-48 overflow-y-auto">
+            {items.map((item, i) => (
+                <div key={i} className="text-xs">
+                    <p className="font-medium text-foreground">{item.dealershipName}</p>
+                    <p className="text-muted-foreground">{item.name}</p>
+                </div>
+            ))}
+        </div>
+    );
+};
 
 
-const StatCard = ({ title, value, icon: Icon, color }: { title: string, value: number | string, icon: React.ElementType, color: string }) => (
-    <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-            <Icon className={`h-4 w-4 ${color}`} />
-        </CardHeader>
-        <CardContent>
-            <div className="text-2xl font-bold">{value}</div>
-        </CardContent>
-    </Card>
-)
+const StatCard = ({ title, value, icon: Icon, color, tooltipContent, onClick }: { title: string, value: number | string, icon: React.ElementType, color: string, tooltipContent?: React.ReactNode, onClick?: () => void }) => {
+    const cardContent = (
+         <Card className={cn(onClick && "cursor-pointer hover:bg-muted/50 transition-colors")}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+                <Icon className={`h-4 w-4 ${color}`} />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{value}</div>
+            </CardContent>
+        </Card>
+    );
+
+    if (tooltipContent) {
+        return (
+             <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                    <TooltipTrigger asChild onClick={onClick}>{cardContent}</TooltipTrigger>
+                    <TooltipContent>{tooltipContent}</TooltipContent>
+                </Tooltip>
+             </TooltipProvider>
+        )
+    }
+
+    return cardContent;
+}
 
 const statusConfig = {
     'approved': { variant: 'default', icon: CheckCircle, label: 'Approved', color: 'text-green-500' },
@@ -123,19 +155,38 @@ const TopPerformerCard = ({ dealer, rank }: { dealer: Dealer & { stats: any }, r
 
 const DashboardContent = ({ dealers, platformStats }: { 
     dealers: (Dealer & { stats: any })[],
-    platformStats?: { totalVehicles: number, soldVehicles: number, inStockVehicles: number, totalEmployees: number, liveWebsites: number }
+    platformStats?: { totalVehicles: number; soldVehicles: number; inStockVehicles: number; totalEmployees: number; liveWebsites: number; allDealers: any[]; approvedDealers: any[]; pendingDealers: any[]; deactivatedDealers: any[]; }
 }) => {
-    const [searchTerm, setSearchTerm] = React.useState("");
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    
+    const [searchTerm, setSearchTerm] = React.useState(searchParams.get('search') || "");
+    const [statusFilter, setStatusFilter] = React.useState(searchParams.get('status') || "");
+
+    const handleFilterClick = (status: string) => {
+        setStatusFilter(status);
+        const params = new URLSearchParams(window.location.search);
+        params.set('status', status);
+        router.push(`${pathname}?${params.toString()}`);
+    }
 
     const filteredDealers = React.useMemo(() => {
-        if (!searchTerm) return dealers;
-        return dealers.filter(d => 
+        let filtered = dealers;
+
+        if (statusFilter) {
+            filtered = filtered.filter(d => d.status === statusFilter);
+        }
+
+        if (!searchTerm) return filtered;
+
+        return filtered.filter(d => 
             d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             d.dealershipName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             d.state.toLowerCase().includes(searchTerm.toLowerCase()) ||
             d.phone.includes(searchTerm)
         );
-    }, [dealers, searchTerm]);
+    }, [dealers, searchTerm, statusFilter]);
     
     const topPerformers = React.useMemo(() => {
         return [...dealers].sort((a,b) => b.stats.soldValue - a.stats.soldValue).slice(0, 10);
@@ -147,12 +198,16 @@ const DashboardContent = ({ dealers, platformStats }: {
             {platformStats && (
                 <div>
                     <h2 className="text-lg font-semibold tracking-tight text-foreground mb-2">Platform-Wide Stats</h2>
-                    <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+                    <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
                         <StatCard title="All Vehicles" value={platformStats.totalVehicles} icon={Package} color="text-blue-500"/>
                         <StatCard title="Sold" value={platformStats.soldVehicles} icon={ShoppingCart} color="text-red-500"/>
                         <StatCard title="In Stock" value={platformStats.inStockVehicles} icon={BadgeCheck} color="text-green-500"/>
                         <StatCard title="Employees" value={platformStats.totalEmployees} icon={UsersIcon} color="text-orange-500"/>
                         <StatCard title="Live Websites" value={platformStats.liveWebsites} icon={Globe} color="text-purple-500"/>
+                        <StatCard title="All Dealers" value={platformStats.allDealers.length} icon={Building2} color="text-gray-500" onClick={() => handleFilterClick('')} tooltipContent={<TooltipList items={platformStats.allDealers} />} />
+                        <StatCard title="Approved" value={platformStats.approvedDealers.length} icon={CheckCircle} color="text-green-500" onClick={() => handleFilterClick('approved')} tooltipContent={<TooltipList items={platformStats.approvedDealers} />} />
+                        <StatCard title="Pending" value={platformStats.pendingDealers.length} icon={Clock} color="text-yellow-500" onClick={() => handleFilterClick('pending')} tooltipContent={<TooltipList items={platformStats.pendingDealers} />} />
+                        <StatCard title="Deactivated" value={platformStats.deactivatedDealers.length} icon={Ban} color="text-red-500" onClick={() => handleFilterClick('deactivated')} tooltipContent={<TooltipList items={platformStats.deactivatedDealers} />} />
                     </div>
                 </div>
             )}

@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import 'dotenv/config';
@@ -893,18 +894,38 @@ export async function deleteDealerAction(id: string): Promise<{ success: boolean
 
 export async function getPlatformWideStats() {
     const db = await getDB();
+
+    const fetchDealerListByStatus = async (status?: Dealer['status']) => {
+        let query = 'SELECT name, dealershipName FROM dealers WHERE id != \'admin-user\'';
+        const params = [];
+        if (status) {
+            query += ' AND status = ?';
+            params.push(status);
+        }
+        query += ' ORDER BY dealershipName ASC';
+        return db.all(query, ...params);
+    };
+
     const [
         totalVehicles,
         soldVehicles,
         inStockVehicles,
         totalEmployees,
-        liveWebsites
+        liveWebsites,
+        allDealers,
+        approvedDealers,
+        pendingDealers,
+        deactivatedDealers
     ] = await Promise.all([
         db.get('SELECT COUNT(*) as count FROM vehicles'),
         db.get("SELECT COUNT(*) as count FROM vehicles WHERE status = 'Sold'"),
         db.get("SELECT COUNT(*) as count FROM vehicles WHERE status = 'For Sale'"),
         db.get('SELECT COUNT(*) as count FROM employees'),
         db.get("SELECT COUNT(*) as count FROM website_content WHERE isLive = 1"),
+        fetchDealerListByStatus(),
+        fetchDealerListByStatus('approved'),
+        fetchDealerListByStatus('pending'),
+        fetchDealerListByStatus('deactivated'),
     ]);
 
     return {
@@ -913,8 +934,10 @@ export async function getPlatformWideStats() {
         inStockVehicles: inStockVehicles?.count || 0,
         totalEmployees: totalEmployees?.count || 0,
         liveWebsites: liveWebsites?.count || 0,
+        allDealers,
+        approvedDealers,
+        pendingDealers,
+        deactivatedDealers,
     }
 }
-
-    
 
