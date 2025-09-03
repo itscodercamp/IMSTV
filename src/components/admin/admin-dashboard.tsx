@@ -2,14 +2,14 @@
 "use client";
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { User, UserCheck, UserX, Search, MoreHorizontal, CheckCircle, XCircle, Ban, Clock, Trash2, AlertTriangle, Eye, Car, Bike, Package, Users as UsersIcon, BadgeCheck, ShoppingCart, Globe } from "lucide-react";
+import { User, UserCheck, UserX, Search, MoreHorizontal, CheckCircle, XCircle, Ban, Clock, Trash2, AlertTriangle, Eye, Car, Bike, Package, Users as UsersIcon, BadgeCheck, ShoppingCart, Globe, BarChart, AreaChart, Map, Target } from "lucide-react";
 import type { Dealer } from "@/lib/types";
 import { Input } from "../ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Badge } from "../ui/badge";
-import { fetchDealers, updateDealerStatusAction, deleteDealerAction, fetchPlatformWideStats } from "@/app/(admin)/actions";
+import { fetchDealers, updateDealerStatusAction, deleteDealerAction } from "@/app/(admin)/actions";
 import { usePathname } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
@@ -21,13 +21,29 @@ const StatCard = ({ title, value, icon: Icon, color }: { title: string, value: n
     <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-            <Icon className={`h-5 w-5 ${color}`} />
+            <Icon className={`h-4 w-4 ${color}`} />
         </CardHeader>
         <CardContent>
-            <div className="text-3xl font-bold">{value}</div>
+            <div className="text-2xl font-bold">{value}</div>
         </CardContent>
     </Card>
 )
+
+const AnalyticsCard = ({ title, description, icon: Icon }: { title: string, description: string, icon: React.ElementType }) => (
+    <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+        <CardHeader>
+            <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                    <Icon className="h-5 w-5 text-primary"/>
+                </div>
+                <CardTitle className="text-base">{title}</CardTitle>
+            </div>
+        </CardHeader>
+        <CardContent>
+            <CardDescription>{description}</CardDescription>
+        </CardContent>
+    </Card>
+);
 
 const statusConfig = {
     'approved': { variant: 'default', icon: CheckCircle, label: 'Approved', color: 'text-green-500' },
@@ -43,7 +59,7 @@ const DashboardContent = ({ dealerCounts, platformStats }: {
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-xl font-semibold tracking-tight text-foreground mb-2">Dealerships Overview</h2>
+                <h2 className="text-lg font-semibold tracking-tight text-foreground mb-2">Dealerships Overview</h2>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <StatCard title="Total Dealers" value={dealerCounts.total} icon={User} color="text-sky-500"/>
                     <StatCard title="Approved" value={dealerCounts.approved} icon={UserCheck} color="text-green-500"/>
@@ -55,17 +71,31 @@ const DashboardContent = ({ dealerCounts, platformStats }: {
                 <>
                 <Separator />
                 <div>
-                    <h2 className="text-xl font-semibold tracking-tight text-foreground mb-2">Platform-Wide Stats</h2>
+                    <h2 className="text-lg font-semibold tracking-tight text-foreground mb-2">Platform-Wide Stats</h2>
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                        <StatCard title="All Registered Vehicles" value={platformStats.totalVehicles} icon={Package} color="text-blue-500"/>
-                        <StatCard title="All Sold Vehicles" value={platformStats.soldVehicles} icon={ShoppingCart} color="text-red-500"/>
-                        <StatCard title="All Available in Stock" value={platformStats.inStockVehicles} icon={BadgeCheck} color="text-green-500"/>
-                        <StatCard title="All Employees" value={platformStats.totalEmployees} icon={UsersIcon} color="text-orange-500"/>
+                        <StatCard title="All Vehicles" value={platformStats.totalVehicles} icon={Package} color="text-blue-500"/>
+                        <StatCard title="Sold" value={platformStats.soldVehicles} icon={ShoppingCart} color="text-red-500"/>
+                        <StatCard title="In Stock" value={platformStats.inStockVehicles} icon={BadgeCheck} color="text-green-500"/>
+                        <StatCard title="Employees" value={platformStats.totalEmployees} icon={UsersIcon} color="text-orange-500"/>
                         <StatCard title="Live Websites" value={platformStats.liveWebsites} icon={Globe} color="text-purple-500"/>
                     </div>
                 </div>
                 </>
             )}
+             <Separator />
+            <div>
+                 <h2 className="text-lg font-semibold tracking-tight text-foreground mb-2">Platform Analytics</h2>
+                 <div className="relative mb-4">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder="Search analytics & reports..." className="pl-8"/>
+                 </div>
+                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                     <AnalyticsCard title="Sales Trends" description="Analyze monthly and yearly sales performance." icon={AreaChart} />
+                     <AnalyticsCard title="Inventory by Category" description="View breakdown of two-wheelers vs. four-wheelers." icon={BarChart} />
+                     <AnalyticsCard title="Lead Conversion" description="Track lead sources and conversion rates." icon={Target} />
+                     <AnalyticsCard title="Regional Performance" description="See sales data based on dealer location." icon={Map} />
+                 </div>
+            </div>
 
         </div>
     )
