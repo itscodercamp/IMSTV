@@ -24,7 +24,6 @@ import { toast } from "@/hooks/use-toast";
 import { ThemeToggleButton } from "@/components/theme-toggle-button";
 import type { Employee } from "@/lib/types";
 import { EmployeeSidebar } from "@/components/employees/employee-sidebar";
-import { EmployeeLayoutClient } from "./employee-dashboard/layout-client";
 
 
 function AppHeader({ employeeInfo }: { employeeInfo: Employee }) {
@@ -122,7 +121,7 @@ function PageTitle() {
     const key = tab ? `/employee-dashboard?tab=${tab}` : pathname;
     
     // For dynamic routes like /inventory/[...slug]
-    if (pathname.startsWith('/inventory')) {
+    if (pathname.includes('/employee-dashboard/inventory/')) {
       return (
         <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground mb-4 md:mb-6">
           Vehicle Details

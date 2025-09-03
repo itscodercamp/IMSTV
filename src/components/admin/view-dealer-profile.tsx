@@ -131,7 +131,7 @@ function InventoryTab({ vehicles, dealerId }: { vehicles: Vehicle[], dealerId: s
                                 <TableCell className="font-medium">₹{v.price.toLocaleString('en-IN')}</TableCell>
                                 <TableCell className="text-right">
                                     <Button asChild variant="outline" size="sm">
-                                        <Link href={`/inventory/${dealerId}/${v.id}`}>
+                                        <Link href={`/admin/inventory/${dealerId}/${v.id}`}>
                                             <EyeIcon className="h-4 w-4" />
                                         </Link>
                                     </Button>
