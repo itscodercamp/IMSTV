@@ -16,6 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import Link from 'next/link';
 import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { cn } from "@/lib/utils";
 
 
 const StatCard = ({ title, value, icon: Icon, color }: { title: string, value: number | string, icon: React.ElementType, color: string }) => (
@@ -418,3 +419,6 @@ export function AdminDashboard({ platformStats }: { platformStats?: any }) {
     return <DashboardContent dealers={userList} platformStats={platformStats} />
 }
 
+
+
+    
