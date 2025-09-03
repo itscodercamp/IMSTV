@@ -264,6 +264,34 @@ export async function addDealer(dealer: Omit<Dealer, 'id' | 'status'>) {
     );
 }
 
+export async function updateDealerDb(dealerId: string, data: Partial<Omit<Dealer, 'id'>>): Promise<{ success: boolean; error?: string }> {
+    const db = await getDB();
+    try {
+        const fields = Object.keys(data).filter(key => (data as any)[key] !== undefined && (key !== 'password' || (key === 'password' && (data as any)[key])));
+        if (fields.length === 0) {
+            return { success: true }; // Nothing to update
+        }
+
+        const setClause = fields.map((field) => `${field} = ?`).join(', ');
+        const values = fields.map(field => (data as any)[field]);
+
+        const result = await db.run(`UPDATE dealers SET ${setClause} WHERE id = ?`, [...values, dealerId]);
+        
+        if (result.changes === 0) {
+            return { success: false, error: 'Dealer not found or no changes made.' };
+        }
+
+        return { success: true };
+    } catch (error: any) {
+        console.error('Error updating dealer:', error);
+        if (error.code === 'SQLITE_CONSTRAINT') {
+             return { success: false, error: "A dealer with this email or phone number may already exist." };
+        }
+        return { success: false, error: 'Failed to update dealer due to a database error.' };
+    }
+}
+
+
 // WEBSITE CONTENT FUNCTIONS
 export async function getWebsiteContent(dealerId: string): Promise<WebsiteContent | null> {
     const db = await getDB();

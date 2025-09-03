@@ -13,7 +13,8 @@ import {
     getAllLeads,
     getPlatformWideStats,
     updateWebsiteStatusAction as updateWebsiteStatusDb,
-    getWebsiteContent
+    getWebsiteContent,
+    updateDealerDb
 } from "@/lib/db"; 
 import { revalidatePath } from "next/cache";
 
@@ -28,6 +29,15 @@ export async function fetchDealerById(id: string): Promise<(Dealer & {websiteCon
     ]);
     if (!dealer) return undefined;
     return { ...dealer, websiteContent };
+}
+
+export async function updateDealerAction(dealerId: string, data: Partial<Omit<Dealer, 'id'>>): Promise<{ success: boolean, error?: string }> {
+    const result = await updateDealerDb(dealerId, data);
+    if (result.success) {
+        revalidatePath(`/admin/users`);
+        revalidatePath(`/admin/users/${dealerId}`);
+    }
+    return result;
 }
 
 export async function updateDealerStatusAction(id: string, status: Dealer['status']): Promise<{ success: boolean }> {

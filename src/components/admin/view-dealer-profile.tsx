@@ -11,9 +11,10 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
+  CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Mail, Phone, MapPin, CheckCircle, Clock, Ban, Car, Bike, IndianRupee, Users, LineChart, Wrench, Contact, FileText, Eye as EyeIcon, Globe, Loader2 } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, CheckCircle, Clock, Ban, Car, Bike, IndianRupee, Users, LineChart, Wrench, Contact, FileText, Eye as EyeIcon, Globe, Loader2, Edit } from "lucide-react";
 import type { Dealer, Employee, Lead, Vehicle, WebsiteContent } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -145,7 +146,7 @@ function InventoryTab({ vehicles, dealerId }: { vehicles: Vehicle[], dealerId: s
     );
 }
 
-function EmployeesTab({ employees }: { employees: Employee[] }) {
+function EmployeesTab({ employees, dealerId }: { employees: Employee[], dealerId: string }) {
      return (
         <Card>
             <CardHeader><CardTitle>Employees ({employees.length})</CardTitle></CardHeader>
@@ -163,9 +164,14 @@ function EmployeesTab({ employees }: { employees: Employee[] }) {
                                     <p className="text-sm text-muted-foreground">{emp.role}</p>
                                 </div>
                             </div>
-                            <div className="text-right">
-                                <p className="font-medium">₹{emp.salary.toLocaleString('en-IN')}</p>
-                                <p className="text-xs text-muted-foreground">per month</p>
+                            <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                    <p className="font-medium">₹{emp.salary.toLocaleString('en-IN')}</p>
+                                    <p className="text-xs text-muted-foreground">per month</p>
+                                </div>
+                                <Button asChild variant="outline" size="sm">
+                                    <Link href={`/admin/users/${dealerId}/employee/${emp.id}`}>Manage Employee</Link>
+                                </Button>
                             </div>
                         </div>
                     ))}
@@ -242,11 +248,17 @@ export function ViewDealerProfile({ dealer, dashboardData, vehicles, employees, 
 
   return (
       <div className="space-y-6 max-w-6xl mx-auto">
-        <div>
+        <div className="flex justify-between items-center">
           <Button asChild variant="outline" size="sm" className="gap-2">
               <Link href={`/admin/users`}>
                   <ArrowLeft className="h-4 w-4" />
                   Back to Users
+              </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+              <Link href={`/admin/users/${dealer.id}/edit`}>
+                  <Edit className="h-4 w-4 mr-2"/>
+                  Edit Dealer
               </Link>
           </Button>
         </div>
@@ -283,8 +295,8 @@ export function ViewDealerProfile({ dealer, dashboardData, vehicles, employees, 
                 </div>
             </CardHeader>
              {dealer.websiteContent?.websiteStatus === 'pending_approval' && (
-                <CardContent>
-                    <div className="p-4 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-500/50 flex items-center justify-between">
+                <CardFooter>
+                    <div className="p-4 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-500/50 flex items-center justify-between w-full">
                         <div className="flex items-center gap-3">
                             <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400"/>
                             <p className="font-medium text-yellow-800 dark:text-yellow-300">This dealer has requested to make their website live.</p>
@@ -294,7 +306,7 @@ export function ViewDealerProfile({ dealer, dashboardData, vehicles, employees, 
                             <span className="ml-2">Approve Website</span>
                         </Button>
                     </div>
-                </CardContent>
+                </CardFooter>
             )}
         </Card>
         
@@ -312,7 +324,7 @@ export function ViewDealerProfile({ dealer, dashboardData, vehicles, employees, 
                 <InventoryTab vehicles={vehicles} dealerId={dealer.id}/>
             </TabsContent>
              <TabsContent value="employees" className="mt-4">
-                <EmployeesTab employees={employees} />
+                <EmployeesTab employees={employees} dealerId={dealer.id} />
             </TabsContent>
             <TabsContent value="leads" className="mt-4">
                 <LeadsTab leads={leads} />
