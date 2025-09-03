@@ -136,6 +136,7 @@ async function initializeDatabase(dbInstance: Database) {
     );
   `);
     
+  await dbInstance.exec(`DROP TABLE IF EXISTS leads;`);
   await dbInstance.exec(`
     CREATE TABLE IF NOT EXISTS leads (
         id TEXT PRIMARY KEY,
@@ -888,3 +889,5 @@ export async function getPlatformWideStats() {
         liveWebsites: liveWebsites?.count || 0,
     }
 }
+
+    
