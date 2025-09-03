@@ -34,8 +34,6 @@ const nextConfig: NextConfig = {
   },
   turbo: {
     rules: {
-      // This is the recommended way to make sqlite3 work with Turbopack.
-      // It will be excluded from the client build.
       '*.node': {
         loaders: ['node-loader'],
         as: '*.node',
