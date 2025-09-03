@@ -13,7 +13,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 const SidebarNavLink = ({ href, children, label }: { href: string; children: React.ReactNode, label: string }) => {
     const pathname = usePathname();
-    const isActive = href === pathname || (href.startsWith('/admin/users') && pathname.startsWith('/admin/users'));
+    const isActive = href === pathname || 
+                     (href.startsWith('/admin/users') && pathname.startsWith('/admin/users')) ||
+                     (href.startsWith('/admin/dashboard') && pathname.startsWith('/admin/dashboard'));
+
 
     return (
         <TooltipProvider delayDuration={0}>
@@ -38,10 +41,8 @@ const SidebarNavLink = ({ href, children, label }: { href: string; children: Rea
 
 export default function AdminLayout({
   children,
-  inventory,
 }: {
   children: React.ReactNode;
-  inventory: React.ReactNode;
 }) {
   const [isMounted, setIsMounted] = React.useState(false);
   const router = useRouter();
@@ -66,8 +67,7 @@ export default function AdminLayout({
   
   const isLoginPage = pathname === '/admin/login_admin';
   const isAuthenticated = typeof window !== 'undefined' && localStorage.getItem("admin_authenticated") === "true";
-  const isInventoryPage = pathname.startsWith('/admin/inventory');
-
+  
   if (!isAuthenticated && !isLoginPage) {
     return null; 
   }
@@ -117,7 +117,7 @@ export default function AdminLayout({
           </Button>
         </header>
         <main className="relative flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
-          {isInventoryPage ? inventory : children}
+          {children}
         </main>
       </div>
     </div>
