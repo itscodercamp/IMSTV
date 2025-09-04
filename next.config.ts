@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -30,19 +31,25 @@ const nextConfig: NextConfig = {
     if (!isServer) {
         config.externals.push('sqlite3');
     }
+    
+    // These rules are to handle `.node` and `.db` files
+    config.module.rules.push(
+      {
+        test: /\.node$/,
+        use: 'node-loader',
+      },
+      {
+        test: /\.db$/,
+        use: [{
+          loader: 'file-loader',
+          options: {
+            name: '[name].[ext]'
+          }
+        }]
+      }
+    );
+
     return config;
-  },
-  turbo: {
-    rules: {
-      '*.node': {
-        loaders: ['node-loader'],
-        as: '*.node',
-      },
-      '**/*.db': {
-        loaders: ['file-loader'],
-        as: '*.db',
-      },
-    },
   },
 };
 
