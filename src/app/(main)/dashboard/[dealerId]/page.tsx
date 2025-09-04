@@ -1,14 +1,15 @@
 
-import { fetchDashboardData, fetchAgingInventory } from "../../actions";
+import { fetchDashboardData, fetchAgingInventory, fetchLeads } from "../../actions";
 import { getStockOverview } from "@/lib/db";
 import { DashboardClientPage } from "@/components/dashboard/dashboard-client-page";
 
 export default async function DashboardPage({ params }: { params: { dealerId: string } }) {
   const { dealerId } = params;
-  const [dashboardData, agingInventory, stockOverviewData] = await Promise.all([
+  const [dashboardData, agingInventory, stockOverviewData, leads] = await Promise.all([
     fetchDashboardData(dealerId),
     fetchAgingInventory(dealerId),
     getStockOverview(dealerId),
+    fetchLeads(dealerId),
   ]);
 
   const stockOverviewChartData = [
@@ -24,6 +25,7 @@ export default async function DashboardPage({ params }: { params: { dealerId: st
       agingInventory={agingInventory}
       dealerId={dealerId}
       stockOverview={stockOverviewChartData}
+      leads={leads}
     />
   );
 }

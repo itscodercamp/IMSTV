@@ -101,7 +101,7 @@ export function StockOverviewChart({ stockData }: StockOverviewChartProps) {
   }
 
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col h-full">
       <CardHeader>
         <CardTitle>Stock Overview</CardTitle>
         <CardDescription>Current status of all vehicles.</CardDescription>
@@ -109,7 +109,7 @@ export function StockOverviewChart({ stockData }: StockOverviewChartProps) {
       <CardContent className="flex-1 pb-0">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square h-full max-h-72"
+          className="mx-auto aspect-square max-h-[300px]"
         >
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>

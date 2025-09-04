@@ -1,14 +1,19 @@
 
 "use client";
 
-import { Car, IndianRupee, Users, LineChart, Wrench } from "lucide-react";
+import { Car, IndianRupee, Users, LineChart, Wrench, Contact } from "lucide-react";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { StockOverviewChart } from "@/components/dashboard/stock-overview-chart";
 import { AgingInventoryTable } from "@/components/dashboard/aging-inventory-table";
-import type { Vehicle } from "@/lib/types";
+import type { Vehicle, Lead } from "@/lib/types";
 import * as React from "react";
 import { Skeleton } from "../ui/skeleton";
 import { FloatingActionButton } from "../dealer/floating-action-button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { format } from "date-fns";
+import { Button } from "../ui/button";
+import Link from 'next/link';
 
 interface DashboardData {
   totalStockValue: number;
@@ -31,18 +36,14 @@ interface DashboardClientPageProps {
   agingInventory: (Vehicle & { daysInStock: number })[];
   dealerId: string;
   stockOverview: StockOverview[];
+  leads: Lead[];
 }
 
 function DashboardLoader() {
     return (
         <div className="flex flex-col gap-4">
-            <div className="grid gap-2 grid-cols-2 sm:grid-cols-3">
-                <Skeleton className="h-24" />
-                <Skeleton className="h-24" />
-                <Skeleton className="h-24" />
-                <Skeleton className="h-24" />
-                <Skeleton className="h-24" />
-                <Skeleton className="h-24" />
+            <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+                {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-24" />)}
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <div className="col-span-12 lg:col-span-4">
@@ -56,7 +57,19 @@ function DashboardLoader() {
     )
 }
 
-export function DashboardClientPage({ dashboardData, agingInventory, dealerId, stockOverview }: DashboardClientPageProps) {
+function getStatusVariant(status: string) {
+    switch (status) {
+        case 'Converted': return 'default';
+        case 'Completed': return 'default';
+        case 'In Progress': return 'secondary';
+        case 'Scheduled': return 'secondary';
+        case 'Lost': return 'destructive';
+        case 'No Show': return 'destructive';
+        default: return 'outline';
+    }
+}
+
+export function DashboardClientPage({ dashboardData, agingInventory, dealerId, stockOverview, leads }: DashboardClientPageProps) {
   if (!dashboardData || !agingInventory || !stockOverview) {
       return <DashboardLoader />
   }
@@ -67,10 +80,12 @@ export function DashboardClientPage({ dashboardData, agingInventory, dealerId, s
     }
     return value.toLocaleString('en-IN');
   }
+  
+  const recentLeads = leads.slice(0, 5);
 
   return (
     <div className="flex flex-col gap-4">
-        <div className="grid gap-2 grid-cols-2 md:grid-cols-3">
+        <div className="grid gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
             <StatCard
             title="Total Stock Value"
             value={`₹${formatToLakhs(dashboardData.totalStockValue)}`}
@@ -108,14 +123,49 @@ export function DashboardClientPage({ dashboardData, agingInventory, dealerId, s
             description="Total spent on repairs"
             />
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <div className="col-span-12 lg:col-span-4">
-                <AgingInventoryTable agingInventory={agingInventory} dealerId={dealerId} />
-            </div>
-            <div className="col-span-12 lg:col-span-3">
-                <StockOverviewChart stockData={stockOverview} />
-            </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+             <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Recent Customer Leads</CardTitle>
+                        <CardDescription>Your newest 5 leads from the sales team.</CardDescription>
+                    </div>
+                     <Button asChild size="sm" variant="outline">
+                        <Link href={`/leads/${dealerId}`}>View All</Link>
+                    </Button>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    {recentLeads.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-10">No leads found yet.</p>
+                    ) : (
+                        recentLeads.map(lead => (
+                            <div key={lead.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-secondary rounded-full">
+                                        <Contact className="h-5 w-5 text-secondary-foreground" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-sm">{lead.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                             {lead.vehicleMake && lead.vehicleModel ? `${lead.vehicleMake} ${lead.vehicleModel}`: lead.otherVehicleName || 'Any Vehicle'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                    <Badge variant={getStatusVariant(lead.conversionStatus)} className="text-xs">{lead.conversionStatus}</Badge>
+                                    <p className="text-xs text-muted-foreground">{format(new Date(lead.dateAdded), "PP")}</p>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </CardContent>
+            </Card>
+             <AgingInventoryTable agingInventory={agingInventory} dealerId={dealerId} />
         </div>
+        
+        <StockOverviewChart stockData={stockOverview} />
+
         <FloatingActionButton />
     </div>
   );
