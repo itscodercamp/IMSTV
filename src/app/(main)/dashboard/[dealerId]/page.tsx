@@ -24,7 +24,7 @@ export default async function DashboardPage({ params }: { params: { dealerId: st
       dashboardData={dashboardData}
       agingInventory={agingInventory}
       dealerId={dealerId}
-      stockOverview={stockOverviewChartData}
+      stockOverview={stockOverview}
       leads={leads}
     />
   );
