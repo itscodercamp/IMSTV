@@ -81,7 +81,7 @@ export function DashboardClientPage({ dashboardData, agingInventory, dealerId, s
     return value.toLocaleString('en-IN');
   }
   
-  const recentLeads = leads.slice(0, 5);
+  const recentLeads = leads;
 
   return (
     <div className="flex flex-col gap-4">
@@ -128,8 +128,8 @@ export function DashboardClientPage({ dashboardData, agingInventory, dealerId, s
              <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle>Recent Customer Leads</CardTitle>
-                        <CardDescription>Your newest 5 leads from the sales team.</CardDescription>
+                        <CardTitle>Leads (Last 5 Days)</CardTitle>
+                        <CardDescription>Your newest leads from the sales team.</CardDescription>
                     </div>
                      <Button asChild size="sm" variant="outline">
                         <Link href={`/leads/${dealerId}`}>View All</Link>
@@ -137,7 +137,7 @@ export function DashboardClientPage({ dashboardData, agingInventory, dealerId, s
                 </CardHeader>
                 <CardContent className="space-y-3">
                     {recentLeads.length === 0 ? (
-                        <p className="text-center text-muted-foreground py-10">No leads found yet.</p>
+                        <p className="text-center text-muted-foreground py-10">No new leads in the last 5 days.</p>
                     ) : (
                         recentLeads.map(lead => (
                             <div key={lead.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">

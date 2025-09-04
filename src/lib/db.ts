@@ -507,9 +507,10 @@ export async function deleteEmployeeDb(employeeId: string): Promise<{ success: b
     }
 }
 
-export async function getAllLeads(dealerId: string): Promise<(Lead & { vehicleMake?: string, vehicleModel?: string, employeeName?: string })[]> {
+export async function getAllLeads(dealerId: string, recentDays?: number): Promise<(Lead & { vehicleMake?: string, vehicleModel?: string, employeeName?: string })[]> {
     const db = await getDB();
-    const results = await db.all(`
+    
+    let query = `
         SELECT 
             l.*,
             v.make as "vehicleMake",
@@ -519,10 +520,25 @@ export async function getAllLeads(dealerId: string): Promise<(Lead & { vehicleMa
         LEFT JOIN vehicles v ON l.vehicleId = v.id
         LEFT JOIN employees e ON l.assignedTo = e.id
         WHERE l.dealerId = ? AND l.isArchived = 0
-        ORDER BY l.dateAdded DESC
-    `, dealerId);
+    `;
+    
+    const params: any[] = [dealerId];
+
+    if (recentDays) {
+        query += ` AND l.dateAdded >= date('now', '-' || ? || ' days')`;
+        params.push(recentDays);
+    }
+    
+    query += ` ORDER BY l.dateAdded DESC`;
+
+    if (recentDays) {
+        query += ` LIMIT 5`; // Keep limit for dashboard view
+    }
+
+    const results = await db.all(query, ...params);
     return results as (Lead & { vehicleMake?: string, vehicleModel?: string, employeeName?: string })[];
 }
+
 
 export async function addLead(lead: Omit<Lead, 'id'>): Promise<{ success: boolean, error?: string }> {
     const db = await getDB();
@@ -946,4 +962,3 @@ export async function getPlatformWideStats() {
         deactivatedDealers,
     }
 }
-

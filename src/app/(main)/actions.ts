@@ -1,7 +1,7 @@
 
 'use server';
 
-import { getDashboardData, getAgingInventory, getAllEmployees, getAllLeads, getAllVehicles, addEmployeeDb, deleteEmployeeDb, updateEmployeeDb, getVehicleByIdDb as getVehicleByIdDb, getEmployeeById as getEmployeeByIdDb, generateSalarySlipDb, getSalarySlipsForEmployee, addVehicleDb, deleteVehicleDb, updateVehicleDb, testDbConnection, setupDatabase, upsertWebsiteContent as upsertWebsiteContentDb, getWebsiteContent as getWebsiteContentDb } from '@/lib/db';
+import { getDashboardData, getAgingInventory, getAllEmployees, getAllLeads, addEmployeeDb, deleteEmployeeDb, updateEmployeeDb, getVehicleByIdDb as getVehicleByIdDb, getEmployeeById as getEmployeeByIdDb, generateSalarySlipDb, getSalarySlipsForEmployee, addVehicleDb, deleteVehicleDb, updateVehicleDb, testDbConnection, setupDatabase, upsertWebsiteContent as upsertWebsiteContentDb, getWebsiteContent as getWebsiteContentDb } from '@/lib/db';
 import type { Employee, SalarySlip, Vehicle, WebsiteContent } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
@@ -60,8 +60,8 @@ export async function deleteEmployeeAction(employeeId: string, dealerId: string)
     return result;
 }
 
-export async function fetchLeads(dealerId: string) {
-    return await getAllLeads(dealerId);
+export async function fetchLeads(dealerId: string, recentDays?: number) {
+    return await getAllLeads(dealerId, recentDays);
 }
 
 export async function fetchVehicles(dealerId: string) {
@@ -153,4 +153,3 @@ export async function upsertWebsiteContentAction(dealerId: string, content: Part
 export async function getWebsiteContentAction(dealerId: string) {
     return getWebsiteContentDb(dealerId);
 }
-    

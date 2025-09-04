@@ -9,7 +9,7 @@ export default async function DashboardPage({ params }: { params: { dealerId: st
     fetchDashboardData(dealerId),
     fetchAgingInventory(dealerId),
     getStockOverview(dealerId),
-    fetchLeads(dealerId),
+    fetchLeads(dealerId, 5), // Fetch leads from the last 5 days for the dashboard
   ]);
 
   const stockOverviewChartData = [
