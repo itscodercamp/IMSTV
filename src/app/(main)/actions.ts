@@ -1,7 +1,7 @@
 
 'use server';
 
-import { getDashboardData, getAgingInventory, getAllEmployees, getAllLeads, addEmployeeDb, deleteEmployeeDb, updateEmployeeDb, getVehicleByIdDb as getVehicleByIdDb, getEmployeeById as getEmployeeByIdDb, generateSalarySlipDb, getSalarySlipsForEmployee, addVehicleDb, deleteVehicleDb, updateVehicleDb, testDbConnection, setupDatabase, upsertWebsiteContent as upsertWebsiteContentDb, getWebsiteContent as getWebsiteContentDb } from '@/lib/db';
+import { getDashboardData, getAgingInventory, getAllEmployees, getAllLeads, addEmployeeDb, deleteEmployeeDb, updateEmployeeDb, getVehicleByIdDb as getVehicleByIdDb, getEmployeeById as getEmployeeByIdDb, generateSalarySlipDb, getSalarySlipsForEmployee, addVehicleDb, deleteVehicleDb, updateVehicleDb, testDbConnection, setupDatabase, upsertWebsiteContent as upsertWebsiteContentDb, getWebsiteContent as getWebsiteContentDb, getAllVehicles } from '@/lib/db';
 import type { Employee, SalarySlip, Vehicle, WebsiteContent } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
@@ -68,7 +68,7 @@ export async function fetchVehicles(dealerId: string) {
     return await getAllVehicles(dealerId);
 }
 
-export async function fetchVehicleById(vehicleId: string, dealerId: string): Promise<Vehicle | undefined> {
+export async function fetchVehicleById(vehicleId: string, dealerId?: string): Promise<Vehicle | undefined> {
     return await getVehicleByIdDb(vehicleId, dealerId);
 }
 
