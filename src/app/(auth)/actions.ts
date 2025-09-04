@@ -59,6 +59,9 @@ export async function loginAction(values: z.infer<typeof loginFormSchema>): Prom
             if (employee.password !== values.password) {
                 return { success: false, message: 'Incorrect password.' };
             }
+            if (employee.status !== 'active') {
+                return { success: false, message: 'Your account is inactive. Please contact your manager.' };
+            }
             return { success: true, message: 'Login successful!', userType: 'employee', userData: employee };
         }
         

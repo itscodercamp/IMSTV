@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, Eye, Edit, Trash2, AlertTriangle, User, Contact, Mail, Phone, IndianRupee, Briefcase, FileText } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Eye, Edit, Trash2, AlertTriangle, User, Contact, Mail, Phone, IndianRupee, Briefcase, FileText, UserCheck, UserX } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -43,7 +43,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { deleteEmployeeAction } from "@/app/(main)/actions";
+import { deleteEmployeeAction, updateEmployeeStatusAction } from "@/app/(main)/actions";
 import { useRouter } from "next/navigation";
 import { Separator } from "../ui/separator";
 
@@ -69,6 +69,7 @@ function getCurrentMonthStatus(slips: SalarySlip[]) {
 export function EmployeesClientPage({ initialEmployees, dealerId }: { initialEmployees: (Employee & { salarySlips: SalarySlip[] })[], dealerId: string }) {
   const router = useRouter();
   const [employeeToDelete, setEmployeeToDelete] = React.useState<Employee | null>(null);
+  const [employeeToDeactivate, setEmployeeToDeactivate] = React.useState<Employee | null>(null);
 
   const handleDelete = async () => {
     if (!employeeToDelete) return;
@@ -92,6 +93,28 @@ export function EmployeesClientPage({ initialEmployees, dealerId }: { initialEmp
     setEmployeeToDelete(null);
   };
   
+  const handleDeactivate = async () => {
+    if (!employeeToDeactivate) return;
+    const newStatus = employeeToDeactivate.status === 'active' ? 'inactive' : 'active';
+    const result = await updateEmployeeStatusAction(employeeToDeactivate.id, newStatus, dealerId);
+
+    if (result.success) {
+      toast({
+        variant: "success",
+        title: `Employee ${newStatus === 'active' ? 'Activated' : 'Deactivated'}`,
+        description: `${employeeToDeactivate.name}'s status has been updated.`,
+      });
+      router.refresh();
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: result.error || "Could not update the employee's status.",
+      });
+    }
+    setEmployeeToDeactivate(null);
+  }
+
   return (
     <>
      <Card>
@@ -139,7 +162,10 @@ export function EmployeesClientPage({ initialEmployees, dealerId }: { initialEmp
                                     <AvatarFallback>{getInitials(employee.name)}</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <div className="font-semibold text-base">{employee.name}</div>
+                                    <div className="font-semibold text-base flex items-center gap-2">
+                                      {employee.name}
+                                      <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>{employee.status === 'active' ? 'Active' : 'Inactive'}</Badge>
+                                    </div>
                                     <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
                                     <Phone className="h-3 w-3"/>
                                     <span>{employee.phone}</span>
@@ -192,6 +218,16 @@ export function EmployeesClientPage({ initialEmployees, dealerId }: { initialEmp
                                     <Link href={`/employees/${dealerId}/${employee.id}/edit`}><Edit className="mr-2 h-4 w-4"/> Edit</Link>
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
+                                  {employee.status === 'active' ? (
+                                    <DropdownMenuItem onClick={() => setEmployeeToDeactivate(employee)}>
+                                      <UserX className="mr-2 h-4 w-4" /> Deactivate
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem onClick={() => setEmployeeToDeactivate(employee)}>
+                                      <UserCheck className="mr-2 h-4 w-4" /> Activate
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuSeparator />
                                   <DropdownMenuItem 
                                     className="text-destructive focus:text-destructive focus:bg-destructive/10" 
                                     onClick={() => setEmployeeToDelete(employee)}
@@ -229,7 +265,32 @@ export function EmployeesClientPage({ initialEmployees, dealerId }: { initialEmp
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+    </AlertDialog>
+    
+    <AlertDialog open={!!employeeToDeactivate} onOpenChange={(isOpen) => !isOpen && setEmployeeToDeactivate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="text-destructive"/>
+               Confirm {employeeToDeactivate?.status === 'active' ? 'Deactivation' : 'Activation'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to {employeeToDeactivate?.status === 'active' ? 'deactivate' : 'activate'} <span className="font-semibold text-foreground">{employeeToDeactivate?.name}</span>'s account?
+              {employeeToDeactivate?.status === 'active' && ' They will lose access to their portal.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeactivate}
+              className={employeeToDeactivate?.status === 'active' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
     </>
   );
 }

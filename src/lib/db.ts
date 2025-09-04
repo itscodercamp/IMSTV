@@ -134,6 +134,7 @@ async function initializeDatabase(dbInstance: Database) {
         phone TEXT NOT NULL UNIQUE,
         password TEXT,
         joiningDate TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'inactive')),
         FOREIGN KEY (dealerId) REFERENCES dealers (id) ON DELETE CASCADE
     );
   `);
@@ -449,12 +450,12 @@ export async function getEmployeeByPhone(phone: string): Promise<(Employee & { d
 }
 
 
-export async function addEmployeeDb(employee: Omit<Employee, 'id' | 'avatarUrl' | 'dealerId' | 'leadsThisMonth'>, dealerId: string): Promise<{ success: boolean, error?: string }> {
+export async function addEmployeeDb(employee: Omit<Employee, 'id' | 'avatarUrl' | 'dealerId' | 'leadsThisMonth' | 'status'>, dealerId: string): Promise<{ success: boolean, error?: string }> {
     const db = await getDB();
     try {
         await db.run(
-            'INSERT INTO employees (id, name, email, phone, role, salary, dealerId, avatarUrl, aadharImageUrl, password, joiningDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            crypto.randomUUID(), employee.name, employee.email, employee.phone, employee.role, employee.salary, dealerId, placeholderAvatar, employee.aadharImageUrl || null, employee.password, employee.joiningDate || new Date().toISOString()
+            'INSERT INTO employees (id, name, email, phone, role, salary, dealerId, avatarUrl, aadharImageUrl, password, joiningDate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            crypto.randomUUID(), employee.name, employee.email, employee.phone, employee.role, employee.salary, dealerId, placeholderAvatar, employee.aadharImageUrl || null, employee.password, employee.joiningDate || new Date().toISOString(), 'active'
         );
         return { success: true };
     } catch (error: any) {
@@ -466,7 +467,7 @@ export async function addEmployeeDb(employee: Omit<Employee, 'id' | 'avatarUrl' 
     }
 }
 
-export async function updateEmployeeDb(employeeId: string, data: Partial<Omit<Employee, 'id' | 'dealerId'>>): Promise<{ success: boolean, error?: string }> {
+export async function updateEmployeeDb(employeeId: string, data: Partial<Omit<Employee, 'id' | 'dealerId'>>): Promise<{ success: boolean; error?: string }> {
     const db = await getDB();
     try {
         const fields = Object.keys(data).filter(key => (data as any)[key] !== undefined && (key !== 'password' || (key === 'password' && (data as any)[key])));
@@ -492,6 +493,21 @@ export async function updateEmployeeDb(employeeId: string, data: Partial<Omit<Em
         return { success: false, error: 'Failed to update employee due to a database error.' };
     }
 }
+
+export async function updateEmployeeStatusDb(employeeId: string, status: 'active' | 'inactive'): Promise<{ success: boolean; error?: string }> {
+    const db = await getDB();
+    try {
+        const result = await db.run(`UPDATE employees SET status = ? WHERE id = ?`, status, employeeId);
+        if (result.changes === 0) {
+            return { success: false, error: 'Employee not found.' };
+        }
+        return { success: true };
+    } catch (error: any) {
+        console.error('Error updating employee status:', error);
+        return { success: false, error: 'Failed to update employee status due to a database error.' };
+    }
+}
+
 
 export async function deleteEmployeeDb(employeeId: string): Promise<{ success: boolean; error?: string }> {
     const db = await getDB();
@@ -525,15 +541,13 @@ export async function getAllLeads(dealerId: string, recentDays?: number): Promis
     const params: any[] = [dealerId];
 
     if (recentDays) {
-        query += ` AND l.dateAdded >= date('now', '-' || ? || ' days')`;
-        params.push(recentDays);
+        const date = new Date();
+        date.setDate(date.getDate() - recentDays);
+        query += ` AND l.dateAdded >= ?`;
+        params.push(date.toISOString());
     }
     
     query += ` ORDER BY l.dateAdded DESC`;
-
-    if (recentDays) {
-        query += ` LIMIT 5`; // Keep limit for dashboard view
-    }
 
     const results = await db.all(query, ...params);
     return results as (Lead & { vehicleMake?: string, vehicleModel?: string, employeeName?: string })[];

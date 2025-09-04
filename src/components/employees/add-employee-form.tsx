@@ -151,7 +151,7 @@ export function AddEmployeeForm({ dealerId }: { dealerId: string }) {
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone Number</FormLabel>
+                <FormLabel>Phone Number (Login ID)</FormLabel>
                 <FormControl>
                   <Input placeholder="e.g., 9876543210" {...field} />
                 </FormControl>

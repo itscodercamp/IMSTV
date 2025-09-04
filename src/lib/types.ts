@@ -115,6 +115,7 @@ export interface Employee {
   password?: string | null;
   joiningDate: string;
   leadsThisMonth?: number;
+  status: 'active' | 'inactive';
 }
 
 export interface Lead {

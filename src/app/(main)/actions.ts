@@ -1,7 +1,7 @@
 
 'use server';
 
-import { getDashboardData, getAgingInventory, getAllEmployees, getAllLeads, addEmployeeDb, deleteEmployeeDb, updateEmployeeDb, getVehicleByIdDb as getVehicleByIdDb, getEmployeeById as getEmployeeByIdDb, generateSalarySlipDb, getSalarySlipsForEmployee, addVehicleDb, deleteVehicleDb, updateVehicleDb, testDbConnection, setupDatabase, upsertWebsiteContent as upsertWebsiteContentDb, getWebsiteContent as getWebsiteContentDb, getAllVehicles } from '@/lib/db';
+import { getDashboardData, getAgingInventory, getAllEmployees, getAllLeads, addEmployeeDb, deleteEmployeeDb, updateEmployeeDb, getVehicleByIdDb as getVehicleByIdDb, getEmployeeById as getEmployeeByIdDb, generateSalarySlipDb, getSalarySlipsForEmployee, addVehicleDb, deleteVehicleDb, updateVehicleDb, testDbConnection, setupDatabase, upsertWebsiteContent as upsertWebsiteContentDb, getWebsiteContent as getWebsiteContentDb, getAllVehicles, updateEmployeeStatusDb } from '@/lib/db';
 import type { Employee, SalarySlip, Vehicle, WebsiteContent } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
@@ -25,7 +25,7 @@ export async function fetchEmployees(dealerId: string): Promise<(Employee & { sa
 }
 
 export async function addEmployeeAction(
-    employeeData: Omit<Employee, 'id' | 'avatarUrl' | 'dealerId'>,
+    employeeData: Omit<Employee, 'id' | 'avatarUrl' | 'dealerId' | 'status'>,
     dealerId: string
 ) {
     const result = await addEmployeeDb(employeeData, dealerId);
@@ -46,6 +46,18 @@ export async function updateEmployeeAction(
         revalidatePath(`/employees?dealerId=${dealerId}`);
         revalidatePath(`/employees/${employeeId}/edit`);
         revalidatePath(`/salary-slips?dealerId=${dealerId}`);
+    }
+    return result;
+}
+
+export async function updateEmployeeStatusAction(
+    employeeId: string,
+    status: 'active' | 'inactive',
+    dealerId: string
+): Promise<{ success: boolean; error?: string }> {
+    const result = await updateEmployeeStatusDb(employeeId, status);
+    if (result.success) {
+        revalidatePath(`/employees/${dealerId}`);
     }
     return result;
 }
