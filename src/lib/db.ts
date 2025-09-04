@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import 'dotenv/config';
@@ -379,7 +378,7 @@ export async function getDashboardData(dealerId: string) {
          db.get('SELECT COUNT(*) as count FROM vehicles WHERE dealerId = ? AND status != ?', dealerId, 'Sold'),
          db.get('SELECT COUNT(*) as count FROM vehicles WHERE dealerId = ? AND status = ?', dealerId, 'For Sale'),
          db.get('SELECT SUM(sellingPrice - cost - refurbishmentCost) as total FROM vehicles WHERE dealerId = ? AND status = ?', dealerId, 'Sold'),
-         db.get('SELECT COUNT(*) as count FROM leads WHERE dealerId = ? AND conversionStatus = ? AND isArchived = 0', dealerId, 'In Progress'),
+         db.get('SELECT COUNT(*) as count FROM leads WHERE dealerId = ? AND conversionStatus = ? AND (isArchived = 0 OR isArchived IS NULL)', dealerId, 'In Progress'),
          db.get('SELECT SUM(refurbishmentCost) as total FROM vehicles WHERE dealerId = ?', dealerId),
          db.get('SELECT COUNT(*) as count FROM vehicles WHERE dealerId = ? AND status = ?', dealerId, 'Sold'),
     ]);
@@ -535,7 +534,7 @@ export async function getAllLeads(dealerId: string, recentDays?: number): Promis
         FROM leads l
         LEFT JOIN vehicles v ON l.vehicleId = v.id
         LEFT JOIN employees e ON l.assignedTo = e.id
-        WHERE l.dealerId = ? AND l.isArchived = 0
+        WHERE l.dealerId = ? AND (l.isArchived = 0 OR l.isArchived IS NULL)
     `;
     
     const params: any[] = [dealerId];
@@ -976,3 +975,6 @@ export async function getPlatformWideStats() {
         deactivatedDealers,
     }
 }
+
+
+    
