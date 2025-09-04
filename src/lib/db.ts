@@ -574,7 +574,7 @@ export async function getLeadsByEmployeeId(employeeId: string): Promise<Lead[]> 
         SELECT l.*, v.make as "vehicleMake", v.model as "vehicleModel"
         FROM leads l
         LEFT JOIN vehicles v ON l.vehicleId = v.id
-        WHERE l.assignedTo = ? AND l.isArchived = 0
+        WHERE l.assignedTo = ? AND (l.isArchived = 0 OR l.isArchived IS NULL)
         ORDER BY l.dateAdded DESC
     `, employeeId);
     return results as Lead[];
@@ -975,6 +975,3 @@ export async function getPlatformWideStats() {
         deactivatedDealers,
     }
 }
-
-
-    
